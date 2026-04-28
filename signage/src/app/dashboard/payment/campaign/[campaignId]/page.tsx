@@ -56,15 +56,26 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
       .limit(1),
   ]);
 
+  // DEBUG: Show error instead of redirecting to diagnose the issue
   if (!campaign || campaign.customer_id !== user.id) {
-    console.log('[Payment Page] Redirecting to dashboard:', {
-      campaignId: params.campaignId,
-      campaignFound: !!campaign,
-      campaignCustomerId: campaign?.customer_id,
-      currentUserId: user.id,
-      match: campaign?.customer_id === user.id
-    });
-    redirect('/dashboard');
+    return (
+      <div className="max-w-2xl mx-auto p-8">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+          <h1 className="text-xl font-bold text-red-800 mb-4">Payment Page Error</h1>
+          <pre className="bg-white p-4 rounded-lg text-xs font-mono overflow-auto">
+{JSON.stringify({
+  campaignId: params.campaignId,
+  campaignFound: !!campaign,
+  campaignCustomerId: campaign?.customer_id,
+  currentUserId: user.id,
+  match: campaign?.customer_id === user.id,
+  reason: !campaign ? 'Campaign not found' : 'User ID mismatch'
+}, null, 2)}
+          </pre>
+          <a href="/dashboard" className="btn btn-primary mt-4 inline-block">Go to Dashboard</a>
+        </div>
+      </div>
+    );
   }
 
   const bookingStatuses = (bookings ?? []).map((b: any) => b.status);
