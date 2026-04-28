@@ -60,11 +60,6 @@ export async function POST(req: NextRequest) {
     });
 
     if (rpcErr) return NextResponse.json({ error: rpcErr.message }, { status: 400 });
-    console.log('[Create Campaign API] v3 - Created:', {
-      campaignId: data?.id,
-      customerId: data?.customer_id,
-      title: data?.title
-    });
     return NextResponse.json({ campaign: data });
   }
 
