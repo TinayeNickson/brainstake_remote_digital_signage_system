@@ -62,6 +62,9 @@ export default function CampaignPaymentForm({
   const canPay = ['awaiting_payment', 'rejected'].includes(campaignStatus);
   console.log('[Payment Form] Render:', { campaignStatus, canPay, bookingsCount: bookings.length });
 
+  // DEBUG: Show status info on page
+  const debugInfo = { campaignStatus, canPay, bookingsCount: bookings.length };
+
   const methods = paymentSettings.length > 0 ? paymentSettings : [
     { method: 'ecocash', label: 'EcoCash', instructions: '', is_enabled: true, sort_order: 1 },
   ];
@@ -118,6 +121,11 @@ export default function CampaignPaymentForm({
 
   return (
     <div className="max-w-2xl mx-auto space-y-7 py-8">
+
+      {/* DEBUG INFO - Remove after fix */}
+      <div className="bg-yellow-100 border border-yellow-300 p-3 rounded-lg text-xs font-mono">
+        <strong>DEBUG:</strong> {JSON.stringify(debugInfo)}
+      </div>
 
       {/* Header */}
       <div>
