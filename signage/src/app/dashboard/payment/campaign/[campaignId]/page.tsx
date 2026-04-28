@@ -33,7 +33,7 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
   const supportPhone = contactMap['support_phone'] || '+263 772 123 456';
   const reviewMsg = contactMap['review_message'] || 'Reviews typically take 24-48 hours. If not approved within 48 hours, please call our support line.';
 
-  const [{ data: campaign }, { data: bookings }, { data: settings }, { data: payment }] = await Promise.all([
+  const [campaignRes, bookingsRes, settingsRes, paymentRes] = await Promise.all([
     supabase
       .from('campaigns')
       .select('id, customer_id, title, total_price, duration, slots_per_day, start_date, end_date, scheduled_days_count, status')
@@ -56,6 +56,12 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
       .limit(1),
   ]);
 
+  const campaign = campaignRes.data;
+  const bookings = bookingsRes.data;
+  const settings = settingsRes.data;
+  const payment = paymentRes.data;
+  const campaignError = campaignRes.error;
+
   // DEBUG: Show error instead of redirecting to diagnose the issue
   if (!campaign || campaign.customer_id !== user.id) {
     return (
@@ -69,7 +75,9 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
   campaignCustomerId: campaign?.customer_id,
   currentUserId: user.id,
   match: campaign?.customer_id === user.id,
-  reason: !campaign ? 'Campaign not found' : 'User ID mismatch'
+  reason: !campaign ? 'Campaign not found' : 'User ID mismatch',
+  campaignError: campaignError?.message,
+  campaignErrorCode: campaignError?.code
 }, null, 2)}
           </pre>
           <a href="/dashboard" className="btn btn-primary mt-4 inline-block">Go to Dashboard</a>
