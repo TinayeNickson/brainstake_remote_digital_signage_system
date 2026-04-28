@@ -284,7 +284,15 @@ export default function NewBookingForm({
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Booking failed');
+      if (!res.ok) {
+        console.error('[New Campaign Form] API Error:', {
+          status: res.status,
+          error: json.error,
+          issues: json.issues,
+          fullResponse: json
+        });
+        throw new Error(json.error || json.issues?.map((i: any) => i.message).join(', ') || 'Booking failed');
+      }
       const redirectUrl = `/dashboard/payment/campaign/${json.campaign.id}`;
       console.log('[New Campaign Form] Redirecting to:', redirectUrl, 'Campaign:', json.campaign);
       window.location.href = redirectUrl;

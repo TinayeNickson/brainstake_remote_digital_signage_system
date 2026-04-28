@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       p_ad_id:            p.ad_id,
       p_location_configs: p.location_configs,
       p_duration:         p.duration,
-      p_package_id:       p_package_id ?? null,
+      p_package_id:       p.package_id ?? null,
     });
 
     if (rpcErr) return NextResponse.json({ error: rpcErr.message }, { status: 400 });
