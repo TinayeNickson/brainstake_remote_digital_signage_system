@@ -67,7 +67,15 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
     redirect('/dashboard');
   }
 
-  const campaignStatus = derivedStatus((bookings ?? []).map((b: any) => b.status));
+  const bookingStatuses = (bookings ?? []).map((b: any) => b.status);
+  const campaignStatus = derivedStatus(bookingStatuses);
+  console.log('[Payment Page] Status check:', {
+    campaignId: params.campaignId,
+    bookingsCount: bookings?.length ?? 0,
+    bookingStatuses,
+    campaignStatus,
+    canPay: ['awaiting_payment', 'rejected'].includes(campaignStatus)
+  });
 
   return (
     <CampaignPaymentForm

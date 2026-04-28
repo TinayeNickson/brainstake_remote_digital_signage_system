@@ -60,6 +60,7 @@ export default function CampaignPaymentForm({
   const supa = supabaseBrowser();
 
   const canPay = ['awaiting_payment', 'rejected'].includes(campaignStatus);
+  console.log('[Payment Form] Render:', { campaignStatus, canPay, bookingsCount: bookings.length });
 
   const methods = paymentSettings.length > 0 ? paymentSettings : [
     { method: 'ecocash', label: 'EcoCash', instructions: '', is_enabled: true, sort_order: 1 },
