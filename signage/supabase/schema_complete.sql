@@ -314,6 +314,19 @@ create table if not exists public.payment_settings (
   updated_by   uuid        references public.profiles(id) on delete set null
 );
 
+-- ── contact_settings ───────────────────────────────────────────────────────────
+create table if not exists public.contact_settings (
+  id              uuid        primary key default gen_random_uuid(),
+  key             text        not null unique,
+  label           text        not null,
+  value           text        not null,
+  description     text,
+  is_public       boolean     not null default true,
+  sort_order      int         not null default 0,
+  updated_at      timestamptz not null default now(),
+  updated_by      uuid        references public.profiles(id) on delete set null
+);
+
 
 -- ============================================================================
 -- HELPER FUNCTIONS
@@ -1222,6 +1235,8 @@ as $$
     and bd.play_date   = current_date
     and b.status       = 'active'
     and (b.device_id is null or b.device_id = p_device_id)
+    and b.start_date  <= current_date
+    and b.end_date    >= current_date
   order by b.created_at;
 $$;
 
@@ -1301,6 +1316,8 @@ begin
       and bd.play_date   = p_date
       and b.status       = 'active'
       and (b.device_id is null or b.device_id = p_device_id)
+      and b.start_date  <= p_date
+      and b.end_date    >= p_date
     order by b.created_at
   loop
     v_placed   := least(v_booking.slots_per_day, v_max_slots);
@@ -1453,6 +1470,374 @@ begin
                                   else pair_locked_until end
    where pairing_code = p_code;
 end;
+$$;
+
+
+-- ============================================================================
+-- RPCs — ADMIN BOOKING MANAGEMENT
+-- ============================================================================
+
+create or replace function public.admin_suspend_booking(
+  p_booking_id    uuid,
+  p_reason        text
+) returns public.bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_admin_id  uuid := auth.uid();
+  v_customer_id uuid;
+  v_booking   public.bookings;
+begin
+  if public.current_role_v() != 'admin' then
+    raise exception 'Only admins can suspend bookings';
+  end if;
+
+  select * into v_booking
+  from public.bookings
+  where id = p_booking_id;
+
+  if v_booking.id is null then
+    raise exception 'Booking not found';
+  end if;
+
+  v_customer_id := v_booking.customer_id;
+
+  update public.bookings
+  set status = 'suspended',
+      suspended_at = now(),
+      suspended_by = v_admin_id,
+      suspend_reason = p_reason
+  where id = p_booking_id
+  returning * into v_booking;
+
+  insert into public.notifications (
+    customer_id, type, title, message, booking_id, created_by
+  ) values (
+    v_customer_id,
+    'booking_suspended',
+    'Your ad has been suspended',
+    p_reason,
+    p_booking_id,
+    v_admin_id
+  );
+
+  return v_booking;
+end;
+$$;
+
+create or replace function public.admin_reactivate_booking(
+  p_booking_id    uuid
+) returns public.bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_admin_id  uuid := auth.uid();
+  v_customer_id uuid;
+  v_booking   public.bookings;
+begin
+  if public.current_role_v() != 'admin' then
+    raise exception 'Only admins can reactivate bookings';
+  end if;
+
+  select * into v_booking
+  from public.bookings
+  where id = p_booking_id;
+
+  if v_booking.id is null then
+    raise exception 'Booking not found';
+  end if;
+
+  v_customer_id := v_booking.customer_id;
+
+  update public.bookings
+  set status = 'active',
+      suspended_at = null,
+      suspended_by = null,
+      suspend_reason = null
+  where id = p_booking_id
+  returning * into v_booking;
+
+  insert into public.notifications (
+    customer_id, type, title, message, booking_id, created_by
+  ) values (
+    v_customer_id,
+    'booking_approved',
+    'Your ad has been reactivated',
+    'Your previously suspended ad is now active again and will resume playing on screens.',
+    p_booking_id,
+    v_admin_id
+  );
+
+  return v_booking;
+end;
+$$;
+
+create or replace function public.admin_update_booking_dates(
+  p_params jsonb
+) returns public.bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_admin_id    uuid := auth.uid();
+  v_customer_id uuid;
+  v_old_start   date;
+  v_old_end     date;
+  v_location_id uuid;
+  v_slots_per_day int;
+  v_booking     public.bookings;
+  v_message     text;
+  v_booking_id  uuid;
+  v_start_date  date;
+  v_end_date    date;
+  v_reason      text;
+begin
+  -- Extract params from JSON
+  v_booking_id := (p_params->>'booking_id')::uuid;
+  v_start_date := (p_params->>'start_date')::date;
+  v_end_date := (p_params->>'end_date')::date;
+  v_reason := p_params->>'reason';
+
+  -- Verify admin with detailed error
+  declare
+    v_detected_role public.user_role;
+  begin
+    v_detected_role := public.current_role_v();
+    if v_detected_role is null then
+      raise exception 'Auth failed: current_role_v() returned null. User may not be authenticated.';
+    end if;
+    if v_detected_role != 'admin' then
+      raise exception 'Auth failed: role is %, expected admin', v_detected_role;
+    end if;
+  end;
+
+  if v_start_date is null or v_end_date is null then
+    raise exception 'Start date and end date are required';
+  end if;
+
+  if v_end_date < v_start_date then
+    raise exception 'End date must be after start date';
+  end if;
+
+  select id, customer_id, location_id, slots_per_day, start_date, end_date
+  into v_booking
+  from public.bookings
+  where id = v_booking_id;
+
+  if v_booking.id is null then
+    raise exception 'Booking not found';
+  end if;
+
+  v_customer_id := v_booking.customer_id;
+  v_old_start := v_booking.start_date;
+  v_old_end := v_booking.end_date;
+  v_location_id := v_booking.location_id;
+  v_slots_per_day := v_booking.slots_per_day;
+
+  update public.bookings
+  set original_start_date = coalesce(original_start_date, start_date),
+      original_end_date = coalesce(original_end_date, end_date),
+      start_date = v_start_date,
+      end_date = v_end_date
+  where id = v_booking_id
+  returning * into v_booking;
+
+  delete from public.booking_dates
+  where booking_id = v_booking_id
+    and (play_date < v_start_date or play_date > v_end_date);
+
+  insert into public.booking_dates (booking_id, location_id, play_date, slots)
+  select v_booking_id, v_location_id, d::date, v_slots_per_day
+  from generate_series(v_start_date, v_end_date, interval '1 day') d
+  where d::date not in (
+    select play_date from public.booking_dates where booking_id = v_booking_id
+  );
+
+  v_message := format('Your ad schedule has been changed from %s–%s to %s–%s.',
+    v_old_start, v_old_end, v_start_date, v_end_date);
+  if v_reason is not null then
+    v_message := v_message || ' Reason: ' || v_reason;
+  end if;
+
+  insert into public.notifications (
+    customer_id, type, title, message, booking_id, created_by, metadata
+  ) values (
+    v_customer_id,
+    'booking_date_changed',
+    'Your ad schedule has been updated',
+    v_message,
+    v_booking_id,
+    v_admin_id,
+    jsonb_build_object(
+      'old_start', v_old_start,
+      'old_end', v_old_end,
+      'new_start', v_start_date,
+      'new_end', v_end_date,
+      'reason', v_reason
+    )
+  );
+
+  return v_booking;
+end;
+$$;
+
+-- Alternative function name for admin date changes (avoids PostgREST caching issues)
+create or replace function public.admin_change_booking_dates(p_params jsonb)
+returns public.bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_admin_id    uuid := coalesce((p_params->>'admin_id')::uuid, auth.uid());
+  v_customer_id uuid;
+  v_old_start   date;
+  v_old_end     date;
+  v_location_id uuid;
+  v_slots_per_day int;
+  v_booking     public.bookings;
+  v_message     text;
+  v_booking_id  uuid;
+  v_start_date  date;
+  v_end_date    date;
+  v_reason      text;
+begin
+  -- Extract params from JSON
+  v_booking_id := (p_params->>'booking_id')::uuid;
+  v_start_date := (p_params->>'start_date')::date;
+  v_end_date := (p_params->>'end_date')::date;
+  v_reason := p_params->>'reason';
+
+  -- Auth check
+  if public.current_role_v() != 'admin' then
+    raise exception 'Only admins can update booking dates';
+  end if;
+
+  -- Validation
+  if v_start_date is null or v_end_date is null then
+    raise exception 'Start date and end date are required';
+  end if;
+  
+  if v_end_date < v_start_date then
+    raise exception 'End date must be after start date';
+  end if;
+
+  -- Get current booking
+  select id, customer_id, location_id, slots_per_day, start_date, end_date
+  into v_booking from public.bookings where id = v_booking_id;
+  
+  if v_booking.id is null then
+    raise exception 'Booking not found';
+  end if;
+
+  -- Save old values
+  v_customer_id := v_booking.customer_id;
+  v_old_start := v_booking.start_date;
+  v_old_end := v_booking.end_date;
+  v_location_id := v_booking.location_id;
+  v_slots_per_day := v_booking.slots_per_day;
+
+  -- Update booking
+  update public.bookings
+  set original_start_date = coalesce(original_start_date, start_date),
+      original_end_date = coalesce(original_end_date, end_date),
+      start_date = v_start_date,
+      end_date = v_end_date
+  where id = v_booking_id
+  returning * into v_booking;
+
+  -- Sync booking_dates - delete outside range
+  delete from public.booking_dates
+  where booking_id = v_booking_id
+    and (play_date < v_start_date or play_date > v_end_date);
+
+  -- Insert new dates
+  insert into public.booking_dates (booking_id, location_id, play_date, slots)
+  select v_booking_id, v_location_id, d::date, v_slots_per_day
+  from generate_series(v_start_date, v_end_date, interval '1 day') d
+  where d::date not in (
+    select play_date from public.booking_dates where booking_id = v_booking_id
+  );
+
+  -- Build notification
+  v_message := format('Your ad schedule has been changed from %s–%s to %s–%s.',
+    v_old_start, v_old_end, v_start_date, v_end_date);
+  if v_reason is not null then
+    v_message := v_message || ' Reason: ' || v_reason;
+  end if;
+
+  -- Send notification
+  insert into public.notifications (
+    customer_id, type, title, message, booking_id, created_by, metadata
+  ) values (
+    v_customer_id,
+    'booking_date_changed',
+    'Your ad schedule has been updated',
+    v_message,
+    v_booking_id,
+    v_admin_id,
+    jsonb_build_object(
+      'old_start', v_old_start,
+      'old_end', v_old_end,
+      'new_start', v_start_date,
+      'new_end', v_end_date,
+      'reason', v_reason
+    )
+  );
+
+  return v_booking;
+end;
+$$;
+
+create or replace function public.mark_notification_read(
+  p_notification_id uuid
+) returns public.notifications
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_notif public.notifications;
+begin
+  update public.notifications
+  set is_read = true
+  where id = p_notification_id
+    and customer_id = auth.uid()
+  returning * into v_notif;
+
+  return v_notif;
+end;
+$$;
+
+create or replace function public.get_customer_notifications(
+  p_limit int default 20,
+  p_offset int default 0
+) returns table (
+  id uuid,
+  type text,
+  title text,
+  message text,
+  booking_id uuid,
+  campaign_id uuid,
+  metadata jsonb,
+  is_read boolean,
+  created_at timestamptz
+)
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select id, type, title, message, booking_id, campaign_id, metadata, is_read, created_at
+  from public.notifications
+  where customer_id = auth.uid()
+  order by created_at desc
+  limit p_limit offset p_offset;
 $$;
 
 
@@ -1682,6 +2067,15 @@ create policy payment_settings_staff_write on public.payment_settings for all
   using  (public.current_role_v() in ('accountant','admin'))
   with check (public.current_role_v() in ('accountant','admin'));
 
+-- ── contact_settings ───────────────────────────────────────────────────────────
+alter table public.contact_settings enable row level security;
+drop policy if exists contact_settings_public_read on public.contact_settings;
+drop policy if exists contact_settings_admin_write on public.contact_settings;
+create policy contact_settings_public_read on public.contact_settings for select using (is_public = true);
+create policy contact_settings_admin_write on public.contact_settings for all
+  using  (public.current_role_v() = 'admin')
+  with check (public.current_role_v() = 'admin');
+
 
 -- ============================================================================
 -- REVOKE DANGEROUS DIRECT TABLE ACCESS FROM ANON
@@ -1691,6 +2085,9 @@ revoke select on public.ad_slot_assignments from anon;
 revoke select on public.security_guards     from anon;
 revoke all     on public.booking_dates      from anon;
 grant  select  on public.booking_dates      to authenticated;
+
+revoke all     on public.notifications       from anon;
+grant  select, insert, update, delete on public.notifications to authenticated;
 
 
 -- ============================================================================
@@ -1807,6 +2204,12 @@ grant execute on function public.regenerate_device_token(uuid)                  
 grant execute on function public.regenerate_pairing_code(uuid)                                                       to authenticated;
 grant execute on function public.pair_device(text)                                                                   to anon, authenticated;
 grant execute on function public.record_failed_pair_attempt(text)                                                    to anon, authenticated;
+grant execute on function public.admin_suspend_booking(uuid, text)                                                   to authenticated;
+grant execute on function public.admin_reactivate_booking(uuid)                                                       to authenticated;
+grant execute on function public.admin_update_booking_dates(jsonb)                                                   to authenticated;
+grant execute on function public.admin_change_booking_dates(jsonb)                                                  to authenticated;
+grant execute on function public.mark_notification_read(uuid)                                                          to authenticated;
+grant execute on function public.get_customer_notifications(int, int)                                              to authenticated;
 grant execute on function public.mark_completed_bookings()                                                           to authenticated;
 
 -- Table grants
@@ -1814,6 +2217,8 @@ grant select on public.packages         to authenticated, anon;
 grant select on public.locations        to authenticated, anon;
 grant select on public.payment_settings to anon, authenticated;
 grant insert, update, delete on public.payment_settings to authenticated;
+grant select on public.contact_settings to anon, authenticated;
+grant insert, update, delete on public.contact_settings to authenticated;
 grant select on public.system_overrides to anon, authenticated;
 grant insert, update, delete on public.system_overrides to authenticated;
 grant select on public.fallback_content to anon, authenticated;
@@ -1844,6 +2249,16 @@ values
   ('cash',          'Cash Deposit',  'Visit our CBD office with your booking ID. Open Mon–Fri 08:00–17:00.',              true, 4),
   ('other',         'Other',         'Attach your reference or proof in the notes field below.',                          true, 5)
 on conflict (method) do nothing;
+
+-- Contact settings
+insert into public.contact_settings (key, label, value, description, is_public, sort_order)
+values
+  ('support_phone',     'Support Phone Number',     '+263 772 123 456', 'Main support phone shown to customers when payment is under review or ads are suspended', true, 1),
+  ('support_whatsapp',  'Support WhatsApp',       '+263 772 123 456', 'WhatsApp number for customer support',                                                  true, 2),
+  ('support_email',     'Support Email',            'support@brainstake.signage.tech', 'Support email address shown to customers',                                              true, 3),
+  ('review_message',    'Payment Review Message',   'Reviews typically take 24-48 hours. If not approved within 48 hours, please call our support line.', 'Message shown when payment is under review', true, 4),
+  ('suspended_message', 'Suspended Ad Message',   'Your ad has been suspended. Please contact support for assistance.', 'Message shown when ad is suspended by admin', true, 5)
+on conflict (key) do nothing;
 
 
 -- ============================================================================

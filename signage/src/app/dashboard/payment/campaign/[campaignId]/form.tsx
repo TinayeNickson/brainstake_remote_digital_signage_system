@@ -45,12 +45,16 @@ export default function CampaignPaymentForm({
   paymentSettings,
   campaignStatus,
   existingPayment,
+  supportPhone,
+  reviewMessage,
 }: {
   campaign: CampaignShape;
   bookings: BookingLine[];
   paymentSettings: PaymentSetting[];
   campaignStatus: string;
   existingPayment: ExistingPayment | null;
+  supportPhone: string;
+  reviewMessage: string;
 }) {
   const router = useRouter();
   const supa = supabaseBrowser();
@@ -129,13 +133,22 @@ export default function CampaignPaymentForm({
           <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-blue-600"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
-          <div>
+          <div className="flex-1">
             <p className="font-bold text-blue-800 text-lg">Proof of payment received</p>
             <p className="text-blue-700/80 text-sm mt-1">
               Your payment is being reviewed by our team. You will be notified once your campaign is activated.
             </p>
+            <div className="mt-4 p-3 bg-white/60 rounded-xl border border-blue-100">
+              <p className="text-sm text-blue-900/80">
+                <span className="font-semibold">Review time:</span> {reviewMessage}
+              </p>
+              <p className="text-sm text-blue-900/80 mt-2 flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-blue-600"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Contact: <a href={`tel:${supportPhone.replace(/\s/g, '')}`} className="font-bold text-brand hover:underline">{supportPhone}</a>
+              </p>
+            </div>
             {existingPayment && (
-              <p className="text-blue-600/70 text-xs mt-2">
+              <p className="text-blue-600/70 text-xs mt-3">
                 Submitted {new Date(existingPayment.submitted_at).toLocaleString()} via {existingPayment.method}
               </p>
             )}

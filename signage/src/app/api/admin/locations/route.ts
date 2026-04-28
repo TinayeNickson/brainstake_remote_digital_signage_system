@@ -5,8 +5,8 @@ import { requireRole } from '@/lib/auth';
 const createSchema = z.object({
   name: z.string().min(2).max(120),
   description: z.string().max(500).nullable().optional(),
-  price_15s: z.number().nonnegative(),
-  price_30s: z.number().nonnegative(),
+  price_15s: z.number().nonnegative().optional().default(0),
+  price_30s: z.number().nonnegative().optional().default(0),
   price_60s: z.number().nonnegative().optional().default(0),
   max_slots_per_day: z.number().int().min(1).max(10000),
   active: z.boolean().optional().default(true),

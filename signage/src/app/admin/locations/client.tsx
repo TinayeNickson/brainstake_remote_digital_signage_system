@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { money } from '@/lib/format';
 import type { Location } from '@/lib/types';
 
 export default function LocationsClient({ initial }: { initial: Location[] }) {
@@ -12,8 +11,6 @@ export default function LocationsClient({ initial }: { initial: Location[] }) {
   const [form, setForm] = useState({
     name: '',
     description: '',
-    price_15s: '',
-    price_30s: '',
     max_slots_per_day: '48',
     active: true,
   });
@@ -28,15 +25,13 @@ export default function LocationsClient({ initial }: { initial: Location[] }) {
       body: JSON.stringify({
         name: form.name,
         description: form.description || null,
-        price_15s: Number(form.price_15s),
-        price_30s: Number(form.price_30s),
         max_slots_per_day: Number(form.max_slots_per_day),
         active: form.active,
       }),
     });
     setBusy(false);
     if (!res.ok) { setErr((await res.json()).error ?? 'Failed'); return; }
-    setForm({ name: '', description: '', price_15s: '', price_30s: '', max_slots_per_day: '48', active: true });
+    setForm({ name: '', description: '', max_slots_per_day: '48', active: true });
     router.refresh();
   }
 
@@ -80,16 +75,6 @@ export default function LocationsClient({ initial }: { initial: Location[] }) {
                  onChange={e => setForm({ ...form, description: e.target.value })} placeholder="High foot traffic" />
         </div>
         <div className="col-span-6 md:col-span-3">
-          <label className="label">Price · 15s slot (USD)</label>
-          <input required type="number" step="0.01" min="0.01" className="input" value={form.price_15s}
-                 onChange={e => setForm({ ...form, price_15s: e.target.value })} />
-        </div>
-        <div className="col-span-6 md:col-span-3">
-          <label className="label">Price · 30s slot (USD)</label>
-          <input required type="number" step="0.01" min="0.01" className="input" value={form.price_30s}
-                 onChange={e => setForm({ ...form, price_30s: e.target.value })} />
-        </div>
-        <div className="col-span-6 md:col-span-3">
           <label className="label">Max slots / day</label>
           <input required type="number" min="1" className="input" value={form.max_slots_per_day}
                  onChange={e => setForm({ ...form, max_slots_per_day: e.target.value })} />
@@ -104,11 +89,9 @@ export default function LocationsClient({ initial }: { initial: Location[] }) {
 
       <div className="paper overflow-hidden">
         <div className="data-header grid-cols-12 grid">
-          <div className="col-span-4">Name</div>
-          <div className="col-span-2">15s slot</div>
-          <div className="col-span-2">30s slot</div>
-          <div className="col-span-2">Slots / day</div>
-          <div className="col-span-2 text-right">Status</div>
+          <div className="col-span-6">Name</div>
+          <div className="col-span-3">Slots / day</div>
+          <div className="col-span-3 text-right">Status</div>
         </div>
         <div className="divide-y divide-ink-100">
           {initial.length === 0 && (
@@ -116,14 +99,12 @@ export default function LocationsClient({ initial }: { initial: Location[] }) {
           )}
           {initial.map(l => (
             <div key={l.id} className="grid grid-cols-12 gap-4 px-5 py-4 items-center row-hover transition-colors">
-              <div className="col-span-4">
+              <div className="col-span-6">
                 <p className="font-semibold text-[13.5px] text-ink-900">{l.name}</p>
                 {l.description && <p className="mono text-[11px] text-ink-900/50 mt-0.5">{l.description}</p>}
               </div>
-              <div className="col-span-2 font-medium text-sm text-ink-900">{money(Number(l.price_15s))}</div>
-              <div className="col-span-2 font-medium text-sm text-ink-900">{money(Number(l.price_30s))}</div>
-              <div className="col-span-2 mono text-sm text-ink-900/70">{l.max_slots_per_day}</div>
-              <div className="col-span-2 flex justify-end">
+              <div className="col-span-3 mono text-sm text-ink-900/70">{l.max_slots_per_day}</div>
+              <div className="col-span-3 flex justify-end">
                 <button onClick={() => toggle(l)}
                         className={`btn h-8 text-xs px-4 ${
                           l.active

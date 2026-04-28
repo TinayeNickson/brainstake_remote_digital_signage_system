@@ -10,6 +10,7 @@ const STATUS_BADGE: Record<string, string> = {
   active:            'badge badge-green',
   ended:             'badge badge-gray',
   rejected:          'badge badge-red',
+  suspended:         'badge badge-red',
   cancelled:         'badge badge-gray',
   completed:         'badge badge-gray',
 };
@@ -19,6 +20,7 @@ const STATUS_LABEL: Record<string, string> = {
   active:            'Live',
   ended:             'Ended',
   rejected:          'Rejected',
+  suspended:         'Suspended by Admin',
   cancelled:         'Cancelled',
   completed:         'Completed',
 };
@@ -38,6 +40,7 @@ function campaignStatus(statuses: string[]): string {
   if (statuses.every(s => s === 'active'))            return 'active';
   if (statuses.every(s => s === 'completed'))         return 'completed';
   if (statuses.every(s => s === 'cancelled'))         return 'cancelled';
+  if (statuses.some(s => s === 'suspended'))          return 'suspended';
   if (statuses.some(s => s === 'payment_submitted'))  return 'payment_submitted';
   if (statuses.some(s => s === 'rejected'))           return 'rejected';
   return 'awaiting_payment';
@@ -47,6 +50,19 @@ export default async function MyCampaignsPage() {
   const supabase = supabaseServer();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (!user || authErr) return null;
+
+  // Fetch contact settings
+  const { data: contactSettings } = await supabase
+    .from('contact_settings')
+    .select('key, value')
+    .eq('is_public', true);
+
+  const contactMap = Object.fromEntries(
+    (contactSettings || []).map(s => [s.key, s.value])
+  );
+  const supportPhone = contactMap['support_phone'] || '+263 772 123 456';
+  const suspendedMsg = contactMap['suspended_message'] || 'Your ad has been suspended. Please contact support for assistance.';
+  const reviewMsg = contactMap['review_message'] || 'Reviews typically take 24-48 hours. If not approved within 48 hours, please call our support line.';
 
   const { data: campaigns, error: campErr } = await supabase
     .from('campaigns')
@@ -101,6 +117,7 @@ export default async function MyCampaignsPage() {
             const displayStatus = resolveDisplayStatus(c.status, c.end_date);
             const needsPayment = ['awaiting_payment', 'rejected'].includes(c.status);
             const hasReceipt   = c.status === 'active' || c.status === 'completed' || displayStatus === 'ended';
+            const isSuspended  = c.status === 'suspended';
             return (
               <div key={c.id} className="card card-hover p-5 flex flex-col sm:flex-row sm:items-center gap-4">
                 {/* Thumbnail */}
@@ -168,10 +185,34 @@ export default async function MyCampaignsPage() {
                     </Link>
                   )}
                   {c.status === 'payment_submitted' && (
-                    <span className="inline-flex items-center gap-1.5 h-9 px-4 text-sm rounded-xl bg-blue-50 border border-blue-200 text-blue-700 font-medium">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                      Under Review
-                    </span>
+                    <div className="group relative">
+                      <span className="inline-flex items-center gap-1.5 h-9 px-4 text-sm rounded-xl bg-blue-50 border border-blue-200 text-blue-700 font-medium cursor-help">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Under Review
+                      </span>
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full right-0 mb-2 w-72 p-3 bg-ink-900 text-white text-xs rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                        <p className="font-semibold mb-1">Review in progress</p>
+                        <p className="text-white/80">{reviewMsg}</p>
+                        <p className="mt-1.5 font-bold text-brand-light">{supportPhone}</p>
+                        <div className="absolute bottom-[-4px] right-4 w-2 h-2 bg-ink-900 rotate-45"></div>
+                      </div>
+                    </div>
+                  )}
+                  {isSuspended && (
+                    <div className="group relative">
+                      <span className="inline-flex items-center gap-1.5 h-9 px-4 text-sm rounded-xl bg-red-50 border border-red-200 text-red-700 font-medium cursor-help">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        Suspended
+                      </span>
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full right-0 mb-2 w-72 p-3 bg-ink-900 text-white text-xs rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                        <p className="font-semibold mb-1">Ad suspended by admin</p>
+                        <p className="text-white/80">{suspendedMsg}</p>
+                        <p className="mt-1.5 font-bold text-brand-light">{supportPhone}</p>
+                        <div className="absolute bottom-[-4px] right-4 w-2 h-2 bg-ink-900 rotate-45"></div>
+                      </div>
+                    </div>
                   )}
                   {hasReceipt && (
                     <Link href="/dashboard/receipts" className="btn btn-ghost h-9 px-4 text-sm">

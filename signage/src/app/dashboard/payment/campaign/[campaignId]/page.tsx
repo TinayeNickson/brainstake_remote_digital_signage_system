@@ -21,17 +21,28 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  // Fetch contact settings
+  const { data: contactSettings } = await supabase
+    .from('contact_settings')
+    .select('key, value')
+    .eq('is_public', true);
+
+  const contactMap = Object.fromEntries(
+    (contactSettings || []).map(s => [s.key, s.value])
+  );
+  const supportPhone = contactMap['support_phone'] || '+263 772 123 456';
+  const reviewMsg = contactMap['review_message'] || 'Reviews typically take 24-48 hours. If not approved within 48 hours, please call our support line.';
+
   const [{ data: campaign }, { data: bookings }, { data: settings }, { data: payment }] = await Promise.all([
     supabase
       .from('campaigns')
-      .select('id, title, total_price, duration, slots_per_day, start_date, end_date, scheduled_days_count, customer_id')
+      .select('id, customer_id, title, total_price, duration, slots_per_day, start_date, end_date, scheduled_days_count, status')
       .eq('id', params.campaignId)
       .single(),
     supabase
       .from('bookings')
-      .select('id, status, total_price, price_per_slot, location:locations(name)')
-      .eq('campaign_id', params.campaignId)
-      .order('created_at'),
+      .select('id, total_price, price_per_slot, location:locations(name)')
+      .eq('campaign_id', params.campaignId),
     supabase
       .from('payment_settings')
       .select('method, label, instructions, is_enabled, sort_order')
@@ -39,9 +50,10 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
       .order('sort_order'),
     supabase
       .from('payments')
-      .select('id, status, amount, method, submitted_at')
+      .select('id, amount, method, reference, status, submitted_at')
       .eq('campaign_id', params.campaignId)
-      .maybeSingle(),
+      .order('submitted_at', { ascending: false })
+      .limit(1),
   ]);
 
   if (!campaign || campaign.customer_id !== user.id) redirect('/dashboard');
@@ -55,6 +67,8 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
       paymentSettings={settings ?? []}
       campaignStatus={campaignStatus}
       existingPayment={payment as any}
+      supportPhone={supportPhone}
+      reviewMessage={reviewMsg}
     />
   );
 }

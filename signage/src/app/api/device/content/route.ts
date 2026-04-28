@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   const { data: deviceRow, error: tokenErr } = await admin
     .from('devices')
-    .select('id, start_time, end_time, display_mode, device_type')
+    .select('id, start_time, end_time, display_mode, device_type, location:locations!inner(max_slots_per_day)')
     .eq('api_token', token)
     .maybeSingle();
 
@@ -89,13 +89,45 @@ export async function GET(req: NextRequest) {
   const ads        = allAds.filter((a: any) => !a.run_outside_hours);
   const outsideAds = allAds.filter((a: any) =>  a.run_outside_hours);
 
+  // Fill vacant slots during operating hours with fallback content
+  const maxSlots = (deviceRow.location as any)?.max_slots_per_day ?? 100;
+  const fallbacks = (fallbackResult.data ?? []) as any[];
+  let paddedAds = ads;
+
+  // Fill vacant slots with fallback content during operating hours
+  // This handles: partial occupancy (50/100 slots) and zero occupancy (0/100 slots)
+  if (ads.length < maxSlots && fallbacks.length > 0) {
+    const vacantSlots = maxSlots - ads.length;
+    const fallbackPool: any[] = [];
+
+    // Cycle through fallbacks to fill vacant slots
+    for (let i = 0; i < vacantSlots; i++) {
+      const fb = fallbacks[i % fallbacks.length];
+      fallbackPool.push({
+        booking_id:        `fallback-${fb.id}-${i}`,
+        ad_id:             `fallback-${fb.id}`,
+        title:             fb.title,
+        format:            fb.content_type,
+        duration:          '15', // Fallback content uses 15s slots
+        media_url:         fb.content_url,
+        slots_per_day:     1,
+        display_mode:      deviceRow.display_mode,
+        run_outside_hours: false,
+        slot_index:        ads.length + i + 1, // Continue after last ad slot
+        is_fallback:       true,
+      });
+    }
+
+    paddedAds = [...ads, ...fallbackPool];
+  }
+
   return NextResponse.json(
     {
       device_id:     deviceId,
       override:      overrideResult.data ?? null,
-      ads,
+      ads:           paddedAds,
       outside_ads:   outsideAds,
-      fallback:      fallbackResult.data ?? [],
+      fallback:      fallbacks,
       device: {
         start_time:  deviceRow.start_time,
         end_time:    deviceRow.end_time,

@@ -10,6 +10,7 @@ const STATUS_BADGE: Record<string, string> = {
   active:            'badge badge-green',
   ended:             'badge badge-gray',
   rejected:          'badge badge-red',
+  suspended:         'badge badge-red',
   cancelled:         'badge badge-gray',
   completed:         'badge badge-gray',
 };
@@ -19,6 +20,7 @@ const STATUS_LABEL: Record<string, string> = {
   active:            'Live',
   ended:             'Ended',
   rejected:          'Rejected',
+  suspended:         'Suspended by Admin',
   cancelled:         'Cancelled',
   completed:         'Completed',
 };
@@ -39,6 +41,7 @@ function campaignStatus(statuses: string[]): string {
   if (statuses.every(s => s === 'active'))            return 'active';
   if (statuses.every(s => s === 'completed'))         return 'completed';
   if (statuses.every(s => s === 'cancelled'))         return 'cancelled';
+  if (statuses.some(s => s === 'suspended'))          return 'suspended';
   if (statuses.some(s => s === 'payment_submitted'))  return 'payment_submitted';
   if (statuses.some(s => s === 'rejected'))           return 'rejected';
   return 'awaiting_payment';
@@ -52,6 +55,19 @@ export default async function CustomerDashboard() {
     .select('full_name, account_type, created_at')
     .eq('id', user!.id)
     .single();
+
+  // Fetch contact settings
+  const { data: contactSettings } = await supabase
+    .from('contact_settings')
+    .select('key, value')
+    .eq('is_public', true);
+
+  const contactMap = Object.fromEntries(
+    (contactSettings || []).map(s => [s.key, s.value])
+  );
+  const supportPhone = contactMap['support_phone'] || '+263 772 123 456';
+  const suspendedMsg = contactMap['suspended_message'] || 'Your ad has been suspended. Please contact support for assistance.';
+  const reviewMsg = contactMap['review_message'] || 'Reviews typically take 24-48 hours. If not approved within 48 hours, please call our support line.';
 
   const { data: campaigns } = await supabase
     .from('campaigns')
@@ -78,6 +94,7 @@ export default async function CustomerDashboard() {
 
   const recent      = all.slice(0, 4);
   const needsAction = all.filter(c => ['awaiting_payment','rejected'].includes(c.status));
+  const suspended   = all.filter(c => c.status === 'suspended');
   const firstName   = profile?.full_name?.split(' ')[0] ?? 'there';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -166,6 +183,56 @@ export default async function CustomerDashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Suspended campaigns ───────────────────────────── */}
+      {suspended.length > 0 && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-600"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            <p className="font-semibold text-red-800 text-sm">{suspended.length} campaign{suspended.length > 1 ? 's' : ''} suspended by admin</p>
+          </div>
+          <div className="space-y-2">
+            {suspended.map((c: any) => (
+              <div key={c.id} className="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-red-100">
+                <div>
+                  <p className="font-semibold text-sm text-ink-900">{c.title}</p>
+                  <p className="text-xs text-ink-900/50">{money(Number(c.total_price))} · {suspendedMsg}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={STATUS_BADGE['suspended']}>{STATUS_LABEL['suspended']}</span>
+                  <a href={`tel:${supportPhone.replace(/\s/g, '')}`} className="btn btn-ghost h-8 px-4 text-xs">
+                    Call Support
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-red-700/80 mt-3">
+            Suspended ads are not being displayed. Please contact admin to resolve this issue. <a href={`tel:${supportPhone.replace(/\s/g, '')}`} className="font-semibold underline">{supportPhone}</a>
+          </p>
+        </div>
+      )}
+
+      {/* ── Payment review info banner ───────────────────────────── */}
+      {all.some((c: any) => c.status === 'payment_submitted') && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-blue-600"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-blue-800 text-sm">Payment under review</p>
+              <p className="text-blue-700/80 text-sm mt-1">
+                One or more of your campaigns have payments being reviewed. {reviewMsg}
+              </p>
+              <p className="text-sm text-blue-900/70 mt-2 flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Contact: <a href={`tel:${supportPhone.replace(/\s/g, '')}`} className="font-bold text-brand hover:underline">{supportPhone}</a>
+              </p>
+            </div>
           </div>
         </div>
       )}

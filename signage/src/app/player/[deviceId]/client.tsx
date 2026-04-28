@@ -179,13 +179,16 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
     if (next.format === 'image') {
       const img = new Image();
       img.src = next.media_url;
-      preloadRef.current = img;
+      preloadRef.current = img as any;
     } else if (next.format === 'video') {
+      // Create video element and actually preload data
       const vid = document.createElement('video');
-      // Preload enough data to start playing without buffering on next switch
+      vid.muted = true;
       vid.preload = 'auto';
       vid.src = next.media_url;
-      preloadRef.current = vid;
+      // Force browser to start loading
+      vid.load();
+      preloadRef.current = vid as any;
     }
   }, []);
 
@@ -306,12 +309,18 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
     // booked duration timer fires.
     advancedRef.current = false;
     const bookedMs = (parseInt(ad.duration, 10) || 15) * 1_000;
+
+    // For videos, add a grace period to prevent timer cutting off prematurely.
+    // The onEnded event should fire naturally; this timer is just a safety net.
+    const isVideo = ad.format === 'video';
+    const timerMs = isVideo ? bookedMs + 2000 : bookedMs;
+
     timer.current = setTimeout(() => {
       if (!advancedRef.current) {
         advancedRef.current = true;
         advance();
       }
-    }, bookedMs);
+    }, timerMs);
 
     return () => {
       if (timer.current) clearTimeout(timer.current);
@@ -322,7 +331,7 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
     return (
       <div className="player-container">
         {override.content_type === 'video' ? (
-          <MediaFill key={override.id} type="video" src={override.content_url} className={transitionCls} />
+          <MediaFill key={override.id} type="video" src={override.content_url} className="" />
         ) : (
           <MediaFill key={override.id} type="image" src={override.content_url} alt={override.title} className={transitionCls} />
         )}
@@ -346,7 +355,7 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
       return (
         <div className="player-container">
           {fb.content_type === 'video' ? (
-            <MediaFill key={`${fb.id}-${animKey}`} type="video" src={fb.content_url} className={transitionCls} onEnded={advanceFallback} />
+            <MediaFill key={fb.id} type="video" src={fb.content_url} className="" onEnded={advanceFallback} />
           ) : (
             <MediaFill key={`${fb.id}-${animKey}`} type="image" src={fb.content_url} alt={fb.title} className={transitionCls} />
           )}
@@ -395,10 +404,10 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
 
       {current && current.format === 'video' && (
         <MediaFill
-          key={`${current.ad_id}-${animKey}`}
+          key={current.ad_id}
           type="video"
           src={current.media_url}
-          className={transitionCls}
+          className="" /* No transition animation - starts visible immediately */
           onEnded={() => {
             if (!advancedRef.current) {
               advancedRef.current = true;
@@ -428,27 +437,98 @@ interface MediaFillProps {
 }
 
 function MediaFill({ type, src, alt = '', className = '', onEnded, onError }: MediaFillProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [ready, setReady] = useState(false);
+
+  // Load and play video when src changes - wait for canplay to avoid stuttering
+  useEffect(() => {
+    setReady(false);
+    if (type === 'video' && videoRef.current) {
+      const v = videoRef.current;
+      v.currentTime = 0;
+      v.load();
+
+      let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+      let stallCheck: ReturnType<typeof setInterval> | null = null;
+
+      const playWhenReady = () => {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        v.currentTime = 0;
+        v.play().catch(() => {});
+        setReady(true);
+      };
+
+      // Fallback: show video after 1.5s even if not fully buffered
+      fallbackTimer = setTimeout(() => {
+        v.play().catch(() => {});
+        setReady(true);
+      }, 1500);
+
+      // Detect and recover from mid-playback stalls
+      stallCheck = setInterval(() => {
+        if (v.paused && v.readyState >= 3 && !v.ended) {
+          // Video paused but has enough data - try to resume
+          v.play().catch(() => {});
+        }
+      }, 1000);
+
+      v.addEventListener('canplaythrough', playWhenReady, { once: true });
+
+      return () => {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        if (stallCheck) clearInterval(stallCheck);
+        v.removeEventListener('canplaythrough', playWhenReady);
+      };
+    }
+  }, [type, src]);
+
   return (
     <div className={`player-media-layer ${className}`}>
-      {/* Blurred background — fills the gaps when aspect ratios differ */}
-      {type === 'video' ? (
-        <video src={src} autoPlay loop muted playsInline aria-hidden
-          className="absolute inset-0 w-full h-full object-cover scale-110 blur-lg opacity-80 pointer-events-none" />
-      ) : (
+      {/* For images: blurred background fills gaps when aspect ratios differ */}
+      {type === 'image' && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" aria-hidden
           className="absolute inset-0 w-full h-full object-cover scale-110 blur-lg opacity-80 pointer-events-none" />
       )}
 
+      {/* For videos: Blurred backdrop using CSS only - avoids dual video decoding */}
+      {type === 'video' && (
+        <div
+          className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden"
+          style={{
+            background: 'radial-gradient(ellipse at center, #1a1a2e 0%, #0d0d1a 50%, #000 100%)',
+          }}
+        >
+          {/* Animated gradient to simulate motion when video has letterboxing */}
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              background: 'linear-gradient(45deg, #1a1a2e, #16213e, #0f3460, #1a1a2e)',
+              backgroundSize: '400% 400%',
+              animation: 'gradientShift 15s ease infinite',
+            }}
+          />
+        </div>
+      )}
+
       {/* Foreground — always contain so nothing is ever cropped */}
       {type === 'video' ? (
         <video
+          ref={videoRef}
           src={src}
-          autoPlay muted playsInline
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
           loop={!onEnded}
           onEnded={onEnded}
           onError={onError}
-          className="absolute inset-0 w-full h-full object-contain"
+          onStalled={() => videoRef.current?.play().catch(() => {})}
+          onWaiting={() => {
+            // When buffering, try to resume after a short delay
+            setTimeout(() => videoRef.current?.play().catch(() => {}), 500);
+          }}
+          className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}
         />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element

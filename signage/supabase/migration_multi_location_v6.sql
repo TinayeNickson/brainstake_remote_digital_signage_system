@@ -300,14 +300,14 @@ begin
   end if;
 
   if v_payment.campaign_id is not null then
-    -- campaign payment: activate ALL bookings in the campaign
+    -- campaign payment: activate ALL bookings in the campaign (no RETURNING - could be multiple rows)
     update public.bookings
        set status      = 'active',
            approved_at = now(),
            approved_by = v_user
-     where campaign_id = v_payment.campaign_id
-    returning customer_id into v_cust;
+     where campaign_id = v_payment.campaign_id;
 
+    -- Get campaign details separately
     select customer_id, total_price into v_cust, v_amount
     from public.campaigns where id = v_payment.campaign_id;
 

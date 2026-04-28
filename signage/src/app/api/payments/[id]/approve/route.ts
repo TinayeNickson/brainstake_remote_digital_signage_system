@@ -19,51 +19,75 @@ export async function POST(
     return NextResponse.json({ error: rpcErr.message }, { status: 400 });
   }
 
-  // Enrich for email
+  // Enrich for email - use separate queries to avoid row multiplication
   const admin = supabaseAdmin();
-  const { data: enriched } = await admin
+
+  // Get receipt with booking
+  const { data: receiptData, error: receiptErr } = await admin
     .from('receipts')
     .select(`
-      receipt_number, amount, issued_at,
-      booking:bookings(
-        id, start_date, end_date, duration, slots_per_day, scheduled_days_count,
-        customer:profiles!bookings_customer_id_fkey(email, full_name),
-        location:locations(name),
-        campaign:campaigns(
-          id, title, start_date, end_date, duration, slots_per_day, scheduled_days_count,
-          customer:profiles!campaigns_customer_id_fkey(email, full_name),
-          bookings(location:locations(name))
-        )
+      id, receipt_number, amount, issued_at, booking_id,
+      booking:bookings!inner(
+        id, start_date, end_date, duration, slots_per_day, scheduled_days, campaign_id,
+        customer:profiles!inner(email, full_name),
+        location:locations(name)
       )
     `)
     .eq('id', (receipt as any).id)
     .single();
 
-  const r: any = enriched;
-  const b: any = r?.booking;
-  const isCampaign = !!b?.campaign;
-  const customerEmail = b?.customer?.email;
-  const customerName  = b?.customer?.full_name;
+  if (receiptErr) {
+    console.error('[approve] receipt fetch error:', receiptErr);
+  }
+
+  const b: any = receiptData?.booking;
+  const campaignId = b?.campaign_id;
+  const isCampaign = !!campaignId;
+
+  // Fetch campaign separately if needed
+  let c: any = null;
+  if (isCampaign && campaignId) {
+    const { data: campaignData } = await admin
+      .from('campaigns')
+      .select('id, title, start_date, end_date, duration, slots_per_day, scheduled_days_count, customer:profiles(email, full_name)')
+      .eq('id', campaignId)
+      .single();
+    c = campaignData;
+  }
+
+  const customerEmail = isCampaign ? c?.customer?.email : b?.customer?.email;
+  const customerName  = isCampaign ? c?.customer?.full_name : b?.customer?.full_name;
+
   if (customerEmail) {
     try {
-      const locationName = isCampaign
-        ? (b.campaign?.bookings ?? []).map((bk: any) => bk.location?.name).filter(Boolean).join(', ')
-        : (b?.location?.name ?? '');
-      const src = isCampaign ? b.campaign : b;
+      // For campaign receipts, fetch all locations
+      let locationName = b?.location?.name ?? '';
+      if (isCampaign && campaignId) {
+        const { data: campaignBookings } = await admin
+          .from('bookings')
+          .select('location:locations(name)')
+          .eq('campaign_id', campaignId);
+        locationName = (campaignBookings ?? [])
+          .map((bk: any) => bk.location?.name)
+          .filter(Boolean)
+          .join(', ');
+      }
+
+      const src = isCampaign ? c : b;
       await sendReceiptEmail({
         to: customerEmail,
         customerName: customerName ?? customerEmail,
-        receiptNumber: r.receipt_number,
+        receiptNumber: receiptData?.receipt_number,
         receiptId: (receipt as any).id,
-        bookingId: isCampaign ? b.campaign?.id : b.id,
+        bookingId: isCampaign ? c?.id : b?.id,
         locationName,
         duration: src?.duration,
         slotsPerDay: src?.slots_per_day,
-        scheduledDays: src?.scheduled_days_count,
+        scheduledDays: src?.scheduled_days_count ?? src?.scheduled_days,
         startDate: src?.start_date,
         endDate: src?.end_date,
-        amount: Number(r.amount),
-        issuedAt: r.issued_at,
+        amount: Number(receiptData?.amount),
+        issuedAt: receiptData?.issued_at,
       });
     } catch (e: any) {
       console.error('[approve] email send failed:', e?.message);

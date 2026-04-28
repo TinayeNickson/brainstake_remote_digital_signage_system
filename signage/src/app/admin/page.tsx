@@ -1,5 +1,5 @@
 import { supabaseServer } from '@/lib/supabase-server';
-import { money, fmtDate } from '@/lib/format';
+import { fmtDate } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,7 @@ export default async function AdminHome() {
   const { data: bookings } = await supabase
     .from('bookings')
     .select(`
-      id, start_date, end_date, duration, slots_per_day, total_price,
+      id, start_date, end_date, duration, slots_per_day,
       status, device_id, created_at, approved_at,
       ad:ads(title, format, duration, media_url),
       location:locations(name),
@@ -21,7 +21,6 @@ export default async function AdminHome() {
 
   const rows = bookings ?? [];
   const unassigned = rows.filter((b: any) => !b.device_id).length;
-  const totalValue = rows.reduce((s: number, b: any) => s + Number(b.total_price ?? 0), 0);
 
   return (
     <div className="space-y-7">
@@ -56,11 +55,6 @@ export default async function AdminHome() {
           <p className="display text-4xl font-extrabold text-amber-600 leading-none">{unassigned}</p>
           <p className="text-xs text-ink-900/40 mt-2">No screen assigned yet</p>
         </div>
-        <div className="stat-card stat-card-blue">
-          <p className="text-xs font-semibold text-ink-900/45 uppercase tracking-wider mb-2">Total Value</p>
-          <p className="display text-3xl font-extrabold text-ink-900 leading-none">{money(totalValue)}</p>
-          <p className="text-xs text-ink-900/40 mt-2">Across all active bookings</p>
-        </div>
       </div>
 
       {/* Ads list */}
@@ -84,7 +78,6 @@ export default async function AdminHome() {
             <div className="col-span-2">Location</div>
             <div className="col-span-2">Schedule</div>
             <div className="col-span-2">Screen</div>
-            <div className="col-span-1 text-right">Value</div>
           </div>
 
           <div className="divide-y divide-ink-100">
@@ -147,10 +140,6 @@ export default async function AdminHome() {
                   )}
                 </div>
 
-                {/* Value */}
-                <div className="col-span-12 sm:col-span-1 sm:text-right">
-                  <p className="display text-[15px] font-extrabold text-ink-900">{money(Number(b.total_price))}</p>
-                </div>
 
               </div>
             ))}

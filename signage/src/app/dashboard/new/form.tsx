@@ -5,7 +5,7 @@ import DaySelector from '@/components/DaySelector';
 import { supabaseBrowser } from '@/lib/supabase-browser';
 import { countScheduledDays, getPricePerSlot } from '@/lib/pricing';
 import { money, fmtDate } from '@/lib/format';
-import type { Location, Package, AdDuration } from '@/lib/types';
+import type { Location, Package, AdDuration, SlotAvailability } from '@/lib/types';
 
 const STEPS = [
   { num: 1, label: 'Ad Type',    desc: 'Image, video, or audio' },
@@ -89,6 +89,10 @@ export default function NewBookingForm({
   const [busy,      setBusy]      = useState(false);
   const [submitErr, setSubmitErr] = useState('');
 
+  /* ── Slot availability ──────────── */
+  const [slotAvailability, setSlotAvailability] = useState<Record<string, SlotAvailability>>({});
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+
   /* ── Derived pricing ─────────────────── */
   const locLineItems = selectedLocs.map(loc => {
     const sched = getLocSchedule(loc.id);
@@ -107,6 +111,37 @@ export default function NewBookingForm({
     if (duration === '30' && !selectedPkg.allows_30s) setDuration('15');
     setGlobalSlots(selectedPkg.base_slots_per_day);
   }, [selectedPkg]); // eslint-disable-line
+
+  /* Fetch slot availability when dates change */
+  useEffect(() => {
+    const effectiveStart = applyToAll ? globalStart : null;
+    const effectiveEnd = applyToAll ? globalEnd : null;
+    
+    // If per-location mode, use the earliest start and latest end from selected locations
+    let start = effectiveStart;
+    let end = effectiveEnd;
+    
+    if (!applyToAll && selectedLocs.length > 0) {
+      const schedules = selectedLocs.map(loc => locSchedules[loc.id]).filter(Boolean);
+      if (schedules.length > 0) {
+        start = schedules.reduce((min, s) => s.start < min ? s.start : min, schedules[0].start);
+        end = schedules.reduce((max, s) => s.end > max ? s.end : max, schedules[0].end);
+      }
+    }
+    
+    if (!start || !end || start > end) return;
+    
+    setLoadingAvailability(true);
+    fetch(`/api/availability/locations?start=${start}&end=${end}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.availability) {
+          setSlotAvailability(data.availability);
+        }
+      })
+      .catch(() => {/* silent fail - availability is informational */})
+      .finally(() => setLoadingAvailability(false));
+  }, [globalStart, globalEnd, applyToAll, locSchedules, selectedLocs.length]); // eslint-disable-line
 
   /* ── Validation ─────────────────── */
   function validateStep1() {
@@ -503,7 +538,19 @@ export default function NewBookingForm({
                             <span>15s — {money(loc.price_15s)}/slot</span>
                             <span>30s — {money(loc.price_30s)}/slot</span>
                             {loc.price_60s > 0 && <span>60s — {money(loc.price_60s)}/slot</span>}
-                            <span className="text-ink-900/35">max {loc.max_slots_per_day}/day</span>
+                            {(() => {
+                              const avail = slotAvailability[loc.id];
+                              if (!avail) return <span className="text-ink-900/35">max {loc.max_slots_per_day}/day</span>;
+                              const isLimited = avail.min_available < 5;
+                              return (
+                                <span className={isLimited ? 'text-amber-600 font-medium' : 'text-ink-900/35'}>
+                                  max {avail.max_slots}/day
+                                  <span className="mx-1">·</span>
+                                  {avail.min_available} available
+                                  {loadingAvailability && <span className="ml-1 opacity-50">(loading...)</span>}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                         {lineItem && lineItem.subtotal > 0 && (

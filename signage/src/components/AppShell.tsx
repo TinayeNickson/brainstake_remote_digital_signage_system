@@ -12,6 +12,7 @@ const CUSTOMER_NAV = [
   { href: '/dashboard/my-campaigns', label: 'My Campaigns',  icon: 'campaign' },
   { href: '/dashboard/new',          label: 'New Campaign',  icon: 'plus'     },
   { href: '/dashboard/receipts',     label: 'Receipts',      icon: 'receipt'  },
+  { href: '/dashboard/notifications', label: 'Notifications', icon: 'bell'     },
 ];
 
 const ACCOUNTANT_NAV = [
@@ -29,6 +30,7 @@ const ADMIN_NAV = [
   { href: '/admin/assign',      label: 'Ad → Screen',     icon: 'link'      },
   { href: '/admin/override',    label: 'Emergency Broadcast', icon: 'broadcast' },
   { href: '/admin/fallback',    label: 'Fallback Content',    icon: 'fallback'  },
+  { href: '/admin/contact-settings', label: 'Contact Settings', icon: 'phone'     },
   { href: '/admin/users',       label: 'Users & Roles',   icon: 'users'     },
   { href: '/dashboard',         label: 'Customer View',   icon: 'campaign'  },
 ];
@@ -70,7 +72,9 @@ const ICON_MAP: Record<string, IconComp> = {
   broadcast: BroadcastNavIcon,
   chart:     ChartIcon,
   settings:  SettingsIcon,
-  fallback:   FallbackIcon,
+  fallback:  FallbackIcon,
+  bell:      BellIcon,
+  phone:     PhoneIcon,
 };
 
 interface Props {
@@ -330,6 +334,21 @@ function BroadcastNavIcon({ active }: { active?: boolean }) {
     </svg>
   );
 }
+function BellIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+  );
+}
+function PhoneIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+  );
+}
+
 function SignOutIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">

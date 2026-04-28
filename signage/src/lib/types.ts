@@ -7,6 +7,7 @@ export type BookingStatus =
   | 'awaiting_payment'
   | 'payment_submitted'
   | 'active'
+  | 'suspended'
   | 'rejected'
   | 'cancelled'
   | 'completed';
@@ -152,4 +153,32 @@ export interface PriceQuote {
   scheduled_days: number;
   total_price: number;
   max_slots_per_day: number;
+}
+
+export interface SlotAvailability {
+  max_slots: number;
+  min_available: number;
+  booked: number;
+}
+
+export type NotificationType =
+  | 'booking_suspended'
+  | 'booking_date_changed'
+  | 'booking_approved'
+  | 'booking_rejected'
+  | 'payment_received'
+  | 'general';
+
+export interface Notification {
+  id: string;
+  customer_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  booking_id: string | null;
+  campaign_id: string | null;
+  metadata: Record<string, any>;
+  is_read: boolean;
+  created_at: string;
+  created_by: string | null;
 }
