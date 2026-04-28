@@ -174,6 +174,8 @@ create table if not exists public.campaigns (
   days_of_week         int[]       not null,
   scheduled_days_count int         not null,
   total_price          numeric(12,2) not null default 0,
+  status               text        not null default 'awaiting_payment' 
+                         check (status in ('awaiting_payment', 'payment_submitted', 'active', 'rejected', 'completed', 'cancelled')),
   created_at           timestamptz not null default now()
 );
 create index if not exists campaigns_customer_idx on public.campaigns (customer_id);
