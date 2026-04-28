@@ -285,7 +285,9 @@ export default function NewBookingForm({
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Booking failed');
-      window.location.href = `/dashboard/payment/campaign/${json.campaign.id}`;
+      const redirectUrl = `/dashboard/payment/campaign/${json.campaign.id}`;
+      console.log('[New Campaign Form] Redirecting to:', redirectUrl, 'Campaign:', json.campaign);
+      window.location.href = redirectUrl;
     } catch (e: any) {
       setSubmitErr(e.message || 'Something went wrong');
       setBusy(false);

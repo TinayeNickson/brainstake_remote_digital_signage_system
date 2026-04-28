@@ -56,7 +56,16 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
       .limit(1),
   ]);
 
-  if (!campaign || campaign.customer_id !== user.id) redirect('/dashboard');
+  if (!campaign || campaign.customer_id !== user.id) {
+    console.log('[Payment Page] Redirecting to dashboard:', {
+      campaignId: params.campaignId,
+      campaignFound: !!campaign,
+      campaignCustomerId: campaign?.customer_id,
+      currentUserId: user.id,
+      match: campaign?.customer_id === user.id
+    });
+    redirect('/dashboard');
+  }
 
   const campaignStatus = derivedStatus((bookings ?? []).map((b: any) => b.status));
 
