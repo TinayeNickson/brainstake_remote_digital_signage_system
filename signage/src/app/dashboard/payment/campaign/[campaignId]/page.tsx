@@ -41,7 +41,7 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
       .single(),
     supabase
       .from('bookings')
-      .select('id, total_price, price_per_slot, location:locations(name)')
+      .select('id, total_price, price_per_slot, status, location:locations(name)')
       .eq('campaign_id', params.campaignId),
     supabase
       .from('payment_settings')
