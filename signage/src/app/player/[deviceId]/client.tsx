@@ -183,7 +183,6 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
     } else if (next.format === 'video') {
       // Create video element and actually preload data
       const vid = document.createElement('video');
-      vid.muted = true;
       vid.preload = 'auto';
       vid.src = next.media_url;
       // Force browser to start loading
@@ -517,7 +516,6 @@ function MediaFill({ type, src, alt = '', className = '', onEnded, onError }: Me
           ref={videoRef}
           src={src}
           autoPlay
-          muted
           playsInline
           preload="auto"
           loop={!onEnded}
