@@ -109,17 +109,17 @@ export default function AppShell({ role, email, fullName, children }: Props) {
     <div className="flex h-screen bg-[#f4f5f7] overflow-hidden">
 
       {/* ── LEFT SIDEBAR ─────────────────────────────────────────── */}
-      <aside className="w-[256px] shrink-0 flex flex-col bg-[#0a2e1f] text-white h-full">
+      <aside className="w-[256px] shrink-0 flex flex-col bg-[#2d2a6e] text-white h-full">
 
         {/* Logo */}
         <div className="px-5 pt-5 pb-4 border-b border-white/[0.08]">
           <Link href="/dashboard" className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-white/10">
-              <Image src="/logo.png" alt="Brainstake" width={32} height={32} className="object-contain" style={{ width: 'auto', height: 'auto' }} priority />
+              <Image src="/logo.jpg" alt="RAREVISION" width={32} height={32} className="object-contain" style={{ width: 'auto', height: 'auto' }} priority />
             </div>
             <div className="leading-none">
-              <p className="font-bold text-[14px] tracking-[0.04em] text-white">BRAINSTAKE</p>
-              <p className="text-[9px] text-white/40 uppercase tracking-[0.22em] mt-[3px]">Digital Signage</p>
+              <p className="font-bold text-[14px] tracking-[0.04em] text-white">RAREVISION</p>
+              <p className="text-[9px] text-white/40 uppercase tracking-[0.22em] mt-[3px]">WE FOLLOW THE DREAM</p>
             </div>
           </Link>
         </div>

@@ -40,9 +40,9 @@ export default function SignageHero({ variant = 'login' }: Props) {
       className="hidden lg:flex relative overflow-hidden flex-col justify-between p-10 xl:p-16 text-white"
       style={{
         background:
-          'radial-gradient(ellipse 80% 60% at 10% 0%, #0f4d2e 0%, transparent 60%),' +
-          'radial-gradient(ellipse 70% 50% at 90% 100%, #0a5a36 0%, transparent 60%),' +
-          'linear-gradient(170deg, #0d3521 0%, #071c13 100%)',
+          'radial-gradient(ellipse 80% 60% at 10% 0%, #2d2a6e 0%, transparent 60%),' +
+          'radial-gradient(ellipse 70% 50% at 90% 100%, #1e1c4d 0%, transparent 60%),' +
+          'linear-gradient(170deg, #0f0e26 0%, #1a1838 100%)',
       }}
     >
       {/* Rich digital background elements */}
