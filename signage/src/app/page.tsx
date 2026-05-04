@@ -18,8 +18,8 @@ function _unused() {
       <header className="sticky top-0 z-50 bg-[#f6f4ef]/90 backdrop-blur-sm border-b border-[#ebe7dd]">
         <div className="px-6 py-4 flex items-center justify-between max-w-6xl mx-auto w-full">
           <div className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="Brainstake" width={32} height={32} style={{ width: 'auto', height: 32 }} />
-            <span className="font-bold text-[15px] tracking-tight text-[#1a1a17]">Brainstake</span>
+            <Image src="/logo.png" alt="RAREVISION" width={56} height={56} className="object-contain" />
+            <span className="font-bold text-[15px] tracking-tight text-[#1a1a17]">RAREVISION</span>
           </div>
           <nav className="hidden md:flex items-center gap-7">
             <a href="#how" className="text-sm text-[#1a1a17]/60 hover:text-[#0f7b4a] transition-colors font-medium">How it works</a>
@@ -53,7 +53,7 @@ function _unused() {
               every day.
             </h1>
             <p className="text-white/70 text-lg leading-relaxed mb-10 max-w-lg">
-              Brainstake connects businesses with high-traffic digital screens across
+              RAREVISION connects businesses with high-traffic digital screens across
               the city. Book a spot, upload your creative, pay securely — and watch
               your ad go live within 24 hours.
             </p>
@@ -135,27 +135,21 @@ function _unused() {
               num: '02', title: 'Choose your screens',
               body: 'Pick from high-traffic locations. Set the dates, days of week, and how many slots per day.',
               icon: (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                  <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-                </svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
               ),
             },
             {
               num: '03', title: 'Pay securely',
               body: 'Pay via EcoCash, OneMoney, or bank transfer. Upload your proof — we verify and approve within 24 hours.',
               icon: (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                  <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-                </svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               ),
             },
             {
               num: '04', title: 'Go live',
               body: 'Your ad starts playing on the selected screens. Track your campaign from your dashboard anytime.',
               icon: (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                  <polygon points="5 3 19 12 5 21 5 3"/>
-                </svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               ),
             },
           ].map(step => (
@@ -180,6 +174,9 @@ function _unused() {
         <div className="max-w-6xl mx-auto w-full">
           <div className="text-center mb-16">
             <span className="section-label">Features</span>
+            <div className="font-bold tracking-tight">
+              <span className="text-2xl"><span className="text-[#2d2a6e]">RARE</span><span className="text-[#f5a623]">VISION</span></span>
+            </div>
             <h2 className="display text-4xl text-[#1a1a17] mt-2">Everything you need to advertise smarter</h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -229,18 +226,18 @@ function _unused() {
         </div>
       </section>
 
-      {/* ── WHY BRAINSTAKE ───────────────────────────────────────── */}
+      {/* ── WHY RAREVISION ───────────────────────────────────────── */}
       <section className="py-24 px-6 max-w-6xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <span className="section-label">Why Brainstake</span>
+            <span className="section-label">Why RAREVISION</span>
             <h2 className="display text-4xl text-[#1a1a17] mt-2 mb-6">
               Advertising that works<br />for businesses of all sizes
             </h2>
             <p className="text-[#1a1a17]/70 leading-relaxed mb-8">
               Whether you&apos;re a local shop promoting a sale, a restaurant filling
               seats during slow hours, or a brand launching a city-wide campaign —
-              Brainstake gives you professional-grade digital advertising without
+              RAREVISION gives you professional-grade digital advertising without
               the agency price tag.
             </p>
             <ul className="space-y-4">
@@ -332,18 +329,18 @@ function _unused() {
       <footer className="bg-[#f6f4ef] border-t border-[#ebe7dd] px-6 py-10">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="Brainstake" width={28} height={28} style={{ width: 'auto', height: 28 }} />
+            <Image src="/logo.png" alt="RAREVISION" width={28} height={28} style={{ width: 'auto', height: 28 }} />
             <div>
-              <p className="font-bold text-sm text-[#1a1a17]">Brainstake</p>
+              <p className="font-bold text-sm text-[#1a1a17]">RAREVISION</p>
               <p className="text-[11px] text-[#1a1a17]/50">Digital Signage Advertising</p>
             </div>
           </div>
           <div className="flex gap-8">
             <Link href="/login"    className="text-sm text-[#1a1a17]/60 hover:text-[#0f7b4a] transition-colors">Sign in</Link>
             <Link href="/register" className="text-sm text-[#1a1a17]/60 hover:text-[#0f7b4a] transition-colors">Register</Link>
-            <a href="mailto:info@brainstake.tech" className="text-sm text-[#1a1a17]/60 hover:text-[#0f7b4a] transition-colors">info@brainstake.tech</a>
+            <a href="mailto:info@rarevision.tech" className="text-sm text-[#1a1a17]/60 hover:text-[#0f7b4a] transition-colors">info@rarevision.tech</a>
           </div>
-          <p className="mono text-[11px] text-[#1a1a17]/40">© {new Date().getFullYear()} Brainstake Ltd.</p>
+          <p className="mono text-[11px] text-[#1a1a17]/40">              &copy; {new Date().getFullYear()} RAREVISION. All rights reserved.</p>
         </div>
       </footer>
 

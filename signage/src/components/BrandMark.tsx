@@ -10,16 +10,15 @@ interface Props {
 export default function BrandMark({ href = '/', tone = 'dark', size = 'md' }: Props) {
   const dim = size === 'xl' ? 64 : size === 'lg' ? 48 : size === 'sm' ? 32 : 40;
   const textCls = size === 'xl' ? 'text-3xl' : size === 'lg' ? 'text-2xl' : size === 'sm' ? 'text-lg' : 'text-xl';
-  const subSize = size === 'xl' ? 'text-[11px] tracking-[0.3em] mt-[5px]' : 'text-[9px] tracking-[0.28em] mt-[3px]';
+  const subSize = size === 'xl' ? 'text-[11px] tracking-[0.2em] mt-[5px]' : 'text-[9px] tracking-[0.18em] mt-[3px]';
   const subCls  = tone === 'light' ? 'text-white/60' : 'text-ink-900/50';
-  const wordCls = tone === 'light' ? 'text-white' : 'text-ink-900';
 
   const content = (
     <span className="inline-flex items-center gap-2.5">
       <span className="shrink-0" style={{ width: dim, height: dim }}>
         <Image
           src="/logo.png"
-          alt="Brainstake logo"
+          alt="RAREVISION logo"
           width={dim}
           height={dim}
           className="object-contain"
@@ -27,9 +26,12 @@ export default function BrandMark({ href = '/', tone = 'dark', size = 'md' }: Pr
         />
       </span>
       <span className="inline-flex flex-col leading-none">
-        <span className={`font-bold tracking-tight ${textCls} ${wordCls}`}>BRAINSTAKE</span>
+        <span className={`font-bold tracking-tight ${textCls}`}>
+          <span className={tone === 'light' ? 'text-white' : 'text-[#2d2a6e]'}>RARE</span>
+          <span className={tone === 'light' ? 'text-[#f5a623]' : 'text-[#f5a623]'}>VISION</span>
+        </span>
         <span className={`uppercase font-medium ${subSize} ${subCls}`}>
-          Remote Digital Signage
+          WE FOLLOW THE DREAM
         </span>
       </span>
     </span>
