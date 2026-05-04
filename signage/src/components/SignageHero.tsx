@@ -1,4 +1,4 @@
-import BrandMark from './BrandMark';
+import Image from 'next/image';
 import RotatingWord from './RotatingWord';
 
 export type HeroVariant = 'login' | 'register';
@@ -48,9 +48,9 @@ export default function SignageHero({ variant = 'login' }: Props) {
       {/* Rich digital background elements */}
       <DigitalBackground />
 
-      {/* TOP — brand */}
+      {/* TOP — Premium Logo Presentation */}
       <div className="relative z-10">
-        <BrandMark tone="light" href="/" size="xl" />
+        <LogoFrame />
       </div>
 
       {/* CENTER — copy + features */}
@@ -114,6 +114,24 @@ function FeatureCard({ icon, title, sub }: { icon: React.ReactNode; title: strin
       <div>
         <div className="text-[14px] font-semibold text-white">{title}</div>
         {sub && <div className="text-[12px] text-white/50 mt-0.5">{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+function LogoFrame() {
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#f5a623] to-[#2d2a6e] rounded-2xl blur-xl opacity-60 animate-pulse" />
+        <div className="relative w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-2xl">
+          <Image src="/logo.jpg" alt="RAREVISION" width={48} height={48} className="object-contain rounded-lg" />
+        </div>
+        <div className="absolute -inset-1 rounded-2xl border border-[#f5a623]/30" />
+      </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-white">RARE<span className="text-[#f5a623]">VISION</span></h1>
+        <p className="text-xs text-white/50 tracking-[0.2em] uppercase">WE FOLLOW THE DREAM</p>
       </div>
     </div>
   );
