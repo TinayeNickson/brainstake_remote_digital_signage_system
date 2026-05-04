@@ -17,20 +17,20 @@ const config: Config = {
           900: '#1a1a17',
           950: '#0d0d0b',
         },
-        // Brainstake green — kept as a tailwind token so classes like
-        // `bg-brand`, `text-brand-deep`, etc. work inline.
+        // RAREVISION colors — purple and orange from logo
         brand: {
-          DEFAULT: '#0f7b4a',
-          dark:    '#0a5a36',
-          deep:    '#0a2e1f',
-          soft:    '#d9ecde',
+          DEFAULT: '#2d2a6e', // Purple (RARE)
+          dark:    '#1e1c4d',
+          deep:    '#0f0e26',
+          soft:    '#e8e6f0',
+          accent:  '#f5a623', // Orange (VISION)
           live:    '#22c55e',
         },
-        // Kept for backwards compatibility with earlier `text-accent`
-        // classes; points at the same green.
+        // Accent now uses orange from logo
         accent: {
-          DEFAULT: '#0f7b4a',
-          soft: '#d9ecde',
+          DEFAULT: '#f5a623',
+          soft: '#fef3e0',
+          dark: '#d4860f',
         },
       },
     },

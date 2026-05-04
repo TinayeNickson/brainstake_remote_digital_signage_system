@@ -68,7 +68,7 @@ export default async function ReceiptDetailPage({ params }: { params: { id: stri
   // Data passed to PrintButton via data attributes (avoids serialising through props)
   const pdfData = {
     receiptNumber:   r.receipt_number,
-    logoUrl:         `${appUrl}/logo.png`,
+    logoUrl:         `${appUrl}/logo.jpg`,
     customerName:    cu?.full_name ?? '—',
     customerEmail:   cu?.email ?? '',
     customerPhone:   cu?.phone ?? '',
@@ -109,7 +109,7 @@ export default async function ReceiptDetailPage({ params }: { params: { id: stri
         <div id="receipt-card" className="bg-white rounded-2xl border border-ink-100 shadow-sm overflow-hidden">
 
           {/* Header band */}
-          <div className="bg-[#0a2e1f] px-8 py-7">
+          <div className="bg-[#2d2a6e] px-8 py-7">
             <div className="flex items-start justify-between mb-6">
               {/* Left: receipt label + number */}
               <div>
@@ -118,13 +118,13 @@ export default async function ReceiptDetailPage({ params }: { params: { id: stri
               </div>
               {/* Right: Logo */}
               <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-white/10 ring-1 ring-white/20 shrink-0">
-                <Image src="/logo.png" alt="Brainstake" width={40} height={40} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
+                <Image src="/logo.jpg" alt="RAREVISION" width={40} height={40} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
               </div>
             </div>
             {/* Company info below */}
             <div className="border-t border-white/10 pt-4">
-              <p className="text-white font-bold text-base tracking-tight">Brainstake</p>
-              <p className="text-white/50 text-xs mt-0.5">Digital Signage Advertising &nbsp;·&nbsp; info@brainstake.tech</p>
+              <p className="text-white font-bold text-base tracking-tight">RAREVISION</p>
+              <p className="text-white/50 text-xs mt-0.5">WE FOLLOW THE DREAM &nbsp;·&nbsp; info@rarevision.tech</p>
             </div>
           </div>
 
@@ -146,8 +146,8 @@ export default async function ReceiptDetailPage({ params }: { params: { id: stri
                   {new Date(r.issued_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-ink-900/35 mt-3 mb-1.5">Payment method</p>
-                <p className="font-semibold text-ink-900">{METHOD_LABELS[py?.method] ?? '—'}</p>
-                {py?.reference && <p className="text-xs text-ink-900/50">Ref: {py.reference}</p>}
+                <p className="font-semibold text-[#2d2a6e]">{METHOD_LABELS[py?.method] ?? '—'}</p>
+                {py?.reference && <p className="text-xs text-[#f5a623] font-medium">Ref: {py.reference}</p>}
               </div>
             </div>
 
@@ -195,21 +195,21 @@ export default async function ReceiptDetailPage({ params }: { params: { id: stri
             )}
 
             {/* Total */}
-            <div className="rounded-xl bg-ink-50 border border-ink-100 p-5 flex items-center justify-between">
+            <div className="rounded-xl bg-[#2d2a6e]/5 border border-[#2d2a6e]/10 p-5 flex items-center justify-between">
               <div className="text-sm text-ink-900/55">
                 <p>{isCampaign ? `${campaignLocations.length} location${campaignLocations.length > 1 ? 's' : ''}` : (bk?.package?.name ?? 'Package')}</p>
                 {!isCampaign && <p className="mt-0.5">{bk?.slots_per_day} slots/day × {bk?.scheduled_days_count} days × {money(Number(bk?.price_per_slot ?? 0))}/slot</p>}
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-ink-900/35 mb-1">Total Paid</p>
-                <p className="font-bold text-3xl text-ink-900 tracking-tight">{money(Number(r.amount))}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#2d2a6e]/60 mb-1">Total Paid</p>
+                <p className="font-bold text-3xl text-[#2d2a6e] tracking-tight">{money(Number(r.amount))}</p>
               </div>
             </div>
 
             {/* Footer */}
             <div className="text-center text-xs text-ink-900/30 leading-relaxed space-y-1">
               <p>This is a computer-generated receipt and does not require a signature.</p>
-              <p>Brainstake &nbsp;·&nbsp; Digital Signage Advertising &nbsp;·&nbsp; info@brainstake.tech</p>
+              <p>RAREVISION &nbsp;·&nbsp; WE FOLLOW THE DREAM &nbsp;·&nbsp; info@rarevision.tech</p>
             </div>
           </div>
         </div>

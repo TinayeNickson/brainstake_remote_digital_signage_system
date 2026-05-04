@@ -103,7 +103,7 @@ export default async function CustomerDashboard() {
     <div className="space-y-8">
 
       {/* ── Welcome banner ───────────────────────────────────────── */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#0a2e1f] to-[#0f7b4a] p-7 text-white flex items-center justify-between gap-6">
+      <div className="rounded-2xl bg-gradient-to-br from-[#2d2a6e] to-[#3d3a7e] p-7 text-white flex items-center justify-between gap-6">
         <div>
           <p className="text-white/60 text-sm font-medium mb-1 flex items-center gap-1.5">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="opacity-70"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
@@ -117,7 +117,7 @@ export default async function CustomerDashboard() {
           </p>
         </div>
         <Link href="/dashboard/new"
-          className="shrink-0 bg-white text-brand font-bold text-sm px-5 h-11 rounded-xl flex items-center gap-2 hover:bg-brand-soft transition-colors shadow-sm">
+          className="shrink-0 bg-white text-[#2d2a6e] font-bold text-sm px-5 h-11 rounded-xl flex items-center gap-2 hover:bg-[#e8e6f0] transition-colors shadow-sm">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           New Campaign
         </Link>

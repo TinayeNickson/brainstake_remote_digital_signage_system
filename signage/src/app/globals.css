@@ -12,13 +12,13 @@
   --ink-100: #ebe7dd;
   --ink-50:  #f6f4ef;
 
-  /* Brainstake green — deep, editorial, unmistakably professional.
-     Pulled toward forest rather than neon so it reads "outdoor signage"
-     and not "startup SaaS". */
-  --brand:       #0f7b4a;   /* primary action */
-  --brand-dark:  #0a5a36;   /* hover / pressed */
-  --brand-deep:  #0a2e1f;   /* hero panels, page dressing */
-  --brand-soft:  #d9ecde;   /* tints, chip backgrounds */
+  /* RAREVISION colors — purple and orange from the logo
+     RARE (purple) #2d2a6e and VISION (orange) #f5a623 */
+  --brand:       #2d2a6e;   /* primary purple */
+  --brand-dark:  #1e1c4d;   /* hover / pressed */
+  --brand-deep:  #0f0e26;   /* hero panels, page dressing */
+  --brand-soft:  #e8e6f0;   /* tints, chip backgrounds */
+  --brand-accent: #f5a623;   /* accent orange (VISION) */
   --brand-live:  #22c55e;   /* pulse/LIVE indicator */
 }
 

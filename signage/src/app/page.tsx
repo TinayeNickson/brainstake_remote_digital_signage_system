@@ -22,9 +22,9 @@ function _unused() {
             <span className="font-bold text-[15px] tracking-tight text-[#1a1a17]">RAREVISION</span>
           </div>
           <nav className="hidden md:flex items-center gap-7">
-            <a href="#how" className="text-sm text-[#1a1a17]/60 hover:text-[#0f7b4a] transition-colors font-medium">How it works</a>
-            <a href="#features" className="text-sm text-[#1a1a17]/60 hover:text-[#0f7b4a] transition-colors font-medium">Features</a>
-            <a href="#pricing" className="text-sm text-[#1a1a17]/60 hover:text-[#0f7b4a] transition-colors font-medium">Pricing</a>
+            <a href="#how" className="text-sm text-[#1a1a17]/60 hover:text-[#2d2a6e] transition-colors font-medium">How it works</a>
+            <a href="#features" className="text-sm text-[#1a1a17]/60 hover:text-[#2d2a6e] transition-colors font-medium">Features</a>
+            <a href="#pricing" className="text-sm text-[#1a1a17]/60 hover:text-[#2d2a6e] transition-colors font-medium">Pricing</a>
           </nav>
           <div className="flex gap-2.5">
             <Link href="/login" className="btn btn-ghost text-sm h-9 px-4">Sign in</Link>
@@ -34,22 +34,22 @@ function _unused() {
       </header>
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-[#0a2e1f] text-white">
+      <section className="relative overflow-hidden bg-[#2d2a6e] text-white">
         {/* Grid background */}
         <div className="absolute inset-0 bg-screens-grid pointer-events-none" />
         {/* Glow */}
-        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full bg-[#0f7b4a]/20 blur-[120px] pointer-events-none" />
-        <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full bg-[#0f7b4a]/10 blur-[100px] pointer-events-none" />
+        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full bg-[#f5a623]/20 blur-[120px] pointer-events-none" />
+        <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full bg-[#f5a623]/10 blur-[100px] pointer-events-none" />
 
         <div className="relative max-w-6xl mx-auto px-6 py-24 lg:py-32 grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 bg-[#0f7b4a]/20 border border-[#0f7b4a]/40 rounded-full px-4 py-1.5 mb-8">
+            <div className="inline-flex items-center gap-2 bg-[#f5a623]/20 border border-[#f5a623]/40 rounded-full px-4 py-1.5 mb-8">
               <span className="pulse-dot" />
-              <span className="mono text-[11px] tracking-widest uppercase text-[#22c55e]">Live on screens across Zimbabwe</span>
+              <span className="mono text-[11px] tracking-widest uppercase text-[#f5a623]">Live on screens across Zimbabwe</span>
             </div>
             <h1 className="display text-[56px] lg:text-[68px] leading-[1.0] mb-6 text-white">
               Your brand on<br />
-              <span className="text-[#22c55e]">every screen,</span><br />
+              <span className="text-[#f5a623]">every screen,</span><br />
               every day.
             </h1>
             <p className="text-white/70 text-lg leading-relaxed mb-10 max-w-lg">
@@ -58,10 +58,10 @@ function _unused() {
               your ad go live within 24 hours.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/register" className="btn btn-primary h-12 px-7 text-[15px] font-semibold">
-                Book your screen now
+              <Link href="/register" className="btn btn-primary h-12 px-7 text-[15px] font-semibold bg-[#2d2a6e] hover:bg-[#1e1c4d] text-white border-[#2d2a6e]">
+                Get started for free
               </Link>
-              <Link href="/login" className="btn h-12 px-7 text-[15px] font-medium bg-white/10 text-white border-white/20 hover:bg-white/20 transition-colors">
+              <Link href="/login" className="btn btn-ghost h-12 px-7 text-[15px] font-medium border-[#2d2a6e]/30 hover:bg-[#2d2a6e]/5 hover:text-[#2d2a6e]">
                 Sign in
               </Link>
             </div>
@@ -71,10 +71,10 @@ function _unused() {
           {/* Mock screen tiles */}
           <div className="hidden lg:grid grid-cols-2 gap-4">
             {[
-              { label: 'Rezende Bus Terminus', status: 'LIVE', color: 'bg-[#22c55e]', delay: '0s' },
-              { label: 'Joina City Mall',       status: 'LIVE', color: 'bg-[#22c55e]', delay: '0.4s' },
-              { label: 'Avondale Shopping',     status: 'LIVE', color: 'bg-[#22c55e]', delay: '0.8s' },
-              { label: 'CBD — Bank Street',     status: 'LIVE', color: 'bg-[#22c55e]', delay: '1.2s' },
+              { label: 'Rezende Bus Terminus', status: 'LIVE', color: 'bg-[#f5a623]', delay: '0s' },
+              { label: 'Joina City Mall',       status: 'LIVE', color: 'bg-[#f5a623]', delay: '0.4s' },
+              { label: 'Avondale Shopping',     status: 'LIVE', color: 'bg-[#f5a623]', delay: '0.8s' },
+              { label: 'CBD — Bank Street',     status: 'LIVE', color: 'bg-[#f5a623]', delay: '1.2s' },
             ].map((s) => (
               <div key={s.label}
                 className="tile-live bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col justify-between min-h-[140px]"
@@ -155,7 +155,7 @@ function _unused() {
           ].map(step => (
             <div key={step.num} className="paper p-6 flex flex-col gap-4 card-hover">
               <div className="flex items-center justify-between">
-                <div className="w-11 h-11 rounded-xl bg-[#d9ecde] flex items-center justify-center text-[#0f7b4a]">
+                <div className="w-11 h-11 rounded-xl bg-[#e8e6f0] flex items-center justify-center text-[#2d2a6e]">
                   {step.icon}
                 </div>
                 <span className="mono text-[11px] text-[#1a1a17]/30 font-medium">{step.num}</span>
