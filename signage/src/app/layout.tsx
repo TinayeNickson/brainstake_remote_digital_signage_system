@@ -5,9 +5,9 @@ export const metadata: Metadata = {
   title: 'RAREVISION — WE FOLLOW THE DREAM',
   description: 'Upload content, book screens, and go live in minutes.',
   icons: {
-    icon: '/logo.png',
-    shortcut: '/logo.png',
-    apple: '/logo.png',
+    icon: '/logo.jpg',
+    shortcut: '/logo.jpg',
+    apple: '/logo.jpg',
   },
 };
 

@@ -18,7 +18,7 @@ function _unused() {
       <header className="sticky top-0 z-50 bg-[#f6f4ef]/90 backdrop-blur-sm border-b border-[#ebe7dd]">
         <div className="px-6 py-4 flex items-center justify-between max-w-6xl mx-auto w-full">
           <div className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="RAREVISION" width={56} height={56} className="object-contain" />
+            <Image src="/logo.jpg" alt="RAREVISION" width={56} height={56} className="object-contain" />
             <span className="font-bold text-[15px] tracking-tight text-[#1a1a17]">RAREVISION</span>
           </div>
           <nav className="hidden md:flex items-center gap-7">
@@ -329,7 +329,7 @@ function _unused() {
       <footer className="bg-[#f6f4ef] border-t border-[#ebe7dd] px-6 py-10">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="RAREVISION" width={28} height={28} style={{ width: 'auto', height: 28 }} />
+            <Image src="/logo.jpg" alt="RAREVISION" width={28} height={28} style={{ width: 'auto', height: 28 }} />
             <div>
               <p className="font-bold text-sm text-[#1a1a17]">RAREVISION</p>
               <p className="text-[11px] text-[#1a1a17]/50">Digital Signage Advertising</p>

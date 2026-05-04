@@ -17,7 +17,7 @@ export default function BrandMark({ href = '/', tone = 'dark', size = 'md' }: Pr
     <span className="inline-flex items-center gap-2.5">
       <span className="shrink-0" style={{ width: dim, height: dim }}>
         <Image
-          src="/logo.png"
+          src="/logo.jpg"
           alt="RAREVISION logo"
           width={dim}
           height={dim}
