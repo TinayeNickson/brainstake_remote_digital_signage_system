@@ -19,7 +19,7 @@
   --brand-deep:  #0f0e26;   /* hero panels, page dressing */
   --brand-soft:  #e8e6f0;   /* tints, chip backgrounds */
   --brand-accent: #f5a623;   /* accent orange (VISION) */
-  --brand-live:  #22c55e;   /* pulse/LIVE indicator */
+  --brand-live:  #f5a623;   /* pulse/LIVE indicator - orange for RAREVISION */
 }
 
 html, body {
