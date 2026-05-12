@@ -98,8 +98,8 @@ export default function RegisterPage() {
     <main className="min-h-screen lg:h-screen lg:overflow-hidden grid lg:grid-cols-[1.15fr_1fr]">
       <SignageHero variant="register" />
 
-      <section className="bg-ink-50 lg:h-screen lg:overflow-y-auto">
-        <div className="w-full max-w-[560px] mx-auto py-10 px-10">
+      <section className="bg-ink-50 flex flex-col lg:h-full lg:overflow-y-auto">
+        <div className="w-full max-w-[560px] mx-auto flex-1 flex flex-col justify-center py-8 px-6 sm:px-10 sm:py-10">
           <div className="lg:hidden mb-6">
             <BrandMark />
           </div>
@@ -119,7 +119,7 @@ export default function RegisterPage() {
               </a>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-md border border-ink-100 p-10">
+            <div className="bg-white rounded-2xl shadow-md border border-ink-100 p-6 sm:p-10">
               <div className="mb-6 text-center">
                 <h1 className="display text-[30px] leading-tight text-ink-900">Create Your Account</h1>
                 <p className="text-[14px] mt-2">
