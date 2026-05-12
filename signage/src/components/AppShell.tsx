@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase-browser';
 import type { UserRole } from '@/lib/types';
 
@@ -90,12 +91,22 @@ export default function AppShell({ role, email, fullName, children }: Props) {
   const initials  = (fullName ?? email)
     .split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar on route change
+  useEffect(() => { setSidebarOpen(false); }, [pathname]);
+
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [sidebarOpen]);
+
   async function signOut() {
     await supabaseBrowser().auth.signOut();
     window.location.href = '/login';
   }
 
-  /* Derive page title from pathname for breadcrumb */
   const pageTitle = (() => {
     const all = [...CUSTOMER_NAV, ...ACCOUNTANT_NAV, ...ADMIN_NAV];
     const match = all
@@ -105,12 +116,10 @@ export default function AppShell({ role, email, fullName, children }: Props) {
     return match?.label ?? 'Dashboard';
   })();
 
-  return (
-    <div className="flex h-screen bg-[#f4f5f7] overflow-hidden">
-
-      {/* ── LEFT SIDEBAR ─────────────────────────────────────────── */}
-      <aside className="w-[256px] shrink-0 flex flex-col bg-[#2d2a6e] text-white h-full">
-
+  /* Shared sidebar content — used both in desktop aside and mobile drawer */
+  function SidebarContent() {
+    return (
+      <>
         {/* Logo */}
         <div className="px-5 pt-5 pb-4 border-b border-white/[0.08]">
           <Link href="/dashboard" className="flex items-center gap-3">
@@ -124,7 +133,7 @@ export default function AppShell({ role, email, fullName, children }: Props) {
           </Link>
         </div>
 
-        {/* Nav section */}
+        {/* Nav */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <p className="px-3 mb-2.5 text-[9.5px] font-bold uppercase tracking-[0.22em] text-white/25">
             {ROLE_LABEL[role]}
@@ -136,21 +145,16 @@ export default function AppShell({ role, email, fullName, children }: Props) {
               const Icon    = ICON_MAP[icon] ?? CampaignIcon;
               return (
                 <Link key={href} href={href}
-                  className={`group flex items-center gap-3 px-3 h-[38px] rounded-lg text-[13px] font-medium transition-all ${
+                  className={`group flex items-center gap-3 px-3 h-[42px] rounded-lg text-[13px] font-medium transition-all ${
                     active
                       ? 'bg-white/[0.12] text-white'
                       : 'text-white/55 hover:text-white hover:bg-white/[0.07]'
                   }`}>
-                  {active && (
-                    <span className="absolute left-0 w-[3px] h-5 bg-brand-live rounded-r-full" style={{}} />
-                  )}
                   <span className={active ? 'text-white' : 'text-white/50 group-hover:text-white/80 transition-colors'}>
                     <Icon active={active} />
                   </span>
                   <span className="flex-1 truncate">{label}</span>
-                  {active && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-brand-live shrink-0" />
-                  )}
+                  {active && <span className="w-1.5 h-1.5 rounded-full bg-brand-live shrink-0" />}
                 </Link>
               );
             })}
@@ -174,17 +178,62 @@ export default function AppShell({ role, email, fullName, children }: Props) {
             Sign out
           </button>
         </div>
+      </>
+    );
+  }
+
+  return (
+    <div className="flex h-[100dvh] bg-[#f4f5f7] overflow-hidden">
+
+      {/* ── DESKTOP SIDEBAR (hidden on mobile) ───────────────────── */}
+      <aside className="hidden lg:flex w-[256px] shrink-0 flex-col bg-[#2d2a6e] text-white h-full">
+        <SidebarContent />
+      </aside>
+
+      {/* ── MOBILE SIDEBAR DRAWER ────────────────────────────────── */}
+      {/* Backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      {/* Drawer */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col bg-[#2d2a6e] text-white h-full transform transition-transform duration-300 ease-in-out lg:hidden ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(false)}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-colors z-10"
+          aria-label="Close menu"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <SidebarContent />
       </aside>
 
       {/* ── MAIN CONTENT ─────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Topbar */}
-        <header className="h-14 shrink-0 bg-white border-b border-ink-100 flex items-center px-6 gap-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+        <header className="h-14 shrink-0 bg-white border-b border-ink-100 flex items-center px-3 sm:px-6 gap-3 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+
+          {/* Hamburger — mobile only */}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-ink-900/50 hover:text-ink-900 hover:bg-ink-50 transition-colors shrink-0"
+            aria-label="Open menu"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-ink-900/30 text-sm font-medium">{ROLE_LABEL[role]}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-ink-900/20 shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
+            <span className="hidden sm:block text-ink-900/30 text-sm font-medium">{ROLE_LABEL[role]}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="hidden sm:block text-ink-900/20 shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
             <span className="text-ink-900 text-sm font-semibold truncate">{pageTitle}</span>
           </div>
 
@@ -197,7 +246,7 @@ export default function AppShell({ role, email, fullName, children }: Props) {
           <div className="hidden sm:block w-px h-5 bg-ink-100" />
 
           {/* Avatar */}
-          <button className="flex items-center gap-2.5 rounded-xl pl-1.5 pr-3 h-9 hover:bg-ink-50 transition-colors">
+          <button className="flex items-center gap-2 rounded-xl pl-1 pr-2 sm:pr-3 h-9 hover:bg-ink-50 transition-colors shrink-0">
             <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-white text-[11px] font-bold shrink-0 ring-2 ring-brand/20">
               {initials}
             </div>
@@ -210,7 +259,7 @@ export default function AppShell({ role, email, fullName, children }: Props) {
 
         {/* Page scroll area */}
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-8 py-8">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
             {children}
           </div>
         </main>
