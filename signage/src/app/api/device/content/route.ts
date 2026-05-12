@@ -1,6 +1,85 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 
+/**
+ * Builds a fully-ordered playlist of exactly `totalSlots` entries.
+ *
+ * Strategy:
+ *  1. Each ad already carries a `slot_index` (from player_slots DB assignment)
+ *     or will get one assigned here based on even distribution.
+ *  2. Ad slots are spread as evenly as possible across positions 1..totalSlots
+ *     using a stride: stride = Math.floor(totalSlots / adSlotCount).
+ *  3. Every position not occupied by an ad slot is filled with fallback content,
+ *     cycling through the fallback pool.
+ *  4. If there are no ads at all, every slot is fallback.
+ *  5. If there is no fallback, only the ad slots are returned (original behaviour).
+ */
+function buildInterleavedPlaylist(
+  ads: any[],
+  fallbacks: any[],
+  totalSlots: number,
+  displayMode: string,
+): any[] {
+  // If no fallback and no ads, return empty.
+  if (ads.length === 0 && fallbacks.length === 0) return [];
+
+  // If no fallback, just return ads as-is (already ordered by slot_index or natural order).
+  if (fallbacks.length === 0) return ads;
+
+  // Total ad entries (each entry = one slot play, slots_per_day already expanded by DB).
+  const adSlotCount = ads.length;
+  const cap = Math.max(totalSlots, adSlotCount); // never truncate ads
+
+  // Build a slot map: position (1-based) -> ad entry
+  const slotMap = new Map<number, any>();
+
+  if (adSlotCount > 0) {
+    if (adSlotCount >= cap) {
+      // Ads fill or overflow total — assign them positions directly.
+      ads.forEach((ad, i) => slotMap.set(i + 1, ad));
+    } else {
+      // Spread ads evenly: compute target positions using equal-interval distribution.
+      // e.g. 3 ads across 80 slots → positions 14, 40, 67  (stride ~26.7)
+      const stride = cap / adSlotCount;
+      ads.forEach((ad, i) => {
+        const pos = Math.round(stride * i + stride / 2); // centred within each band
+        const clamped = Math.max(1, Math.min(cap, pos));
+        // Avoid collision — nudge forward if already taken
+        let final = clamped;
+        while (slotMap.has(final) && final <= cap) final++;
+        slotMap.set(final, ad);
+      });
+    }
+  }
+
+  // Fill every remaining position with cycling fallback content.
+  let fbIdx = 0;
+  const playlist: any[] = [];
+  for (let pos = 1; pos <= cap; pos++) {
+    if (slotMap.has(pos)) {
+      playlist.push({ ...slotMap.get(pos), slot_index: pos });
+    } else {
+      const fb = fallbacks[fbIdx % fallbacks.length];
+      fbIdx++;
+      playlist.push({
+        booking_id:        `fallback-${fb.id}-${pos}`,
+        ad_id:             `fallback-${fb.id}-${pos}`,
+        title:             fb.title,
+        format:            fb.content_type,
+        duration:          '15',
+        media_url:         fb.content_url,
+        slots_per_day:     1,
+        display_mode:      displayMode,
+        run_outside_hours: false,
+        slot_index:        pos,
+        is_fallback:       true,
+      });
+    }
+  }
+
+  return playlist;
+}
+
 export async function GET(req: NextRequest) {
   const admin = supabaseAdmin();
 
@@ -89,37 +168,12 @@ export async function GET(req: NextRequest) {
   const ads        = allAds.filter((a: any) => !a.run_outside_hours);
   const outsideAds = allAds.filter((a: any) =>  a.run_outside_hours);
 
-  // Fill vacant slots during operating hours with fallback content
-  const maxSlots = (deviceRow.location as any)?.max_slots_per_day ?? 100;
+  const maxSlots  = (deviceRow.location as any)?.max_slots_per_day ?? 100;
   const fallbacks = (fallbackResult.data ?? []) as any[];
-  let paddedAds = ads;
 
-  // Fill vacant slots with fallback content during operating hours
-  // This handles: partial occupancy (50/100 slots) and zero occupancy (0/100 slots)
-  if (ads.length < maxSlots && fallbacks.length > 0) {
-    const vacantSlots = maxSlots - ads.length;
-    const fallbackPool: any[] = [];
-
-    // Cycle through fallbacks to fill vacant slots
-    for (let i = 0; i < vacantSlots; i++) {
-      const fb = fallbacks[i % fallbacks.length];
-      fallbackPool.push({
-        booking_id:        `fallback-${fb.id}-${i}`,
-        ad_id:             `fallback-${fb.id}`,
-        title:             fb.title,
-        format:            fb.content_type,
-        duration:          '15', // Fallback content uses 15s slots
-        media_url:         fb.content_url,
-        slots_per_day:     1,
-        display_mode:      deviceRow.display_mode,
-        run_outside_hours: false,
-        slot_index:        ads.length + i + 1, // Continue after last ad slot
-        is_fallback:       true,
-      });
-    }
-
-    paddedAds = [...ads, ...fallbackPool];
-  }
+  // Build a fully-ordered playlist of exactly maxSlots entries.
+  // Ad slots are spread evenly across the range; fallback fills every other slot.
+  const paddedAds = buildInterleavedPlaylist(ads, fallbacks, maxSlots, deviceRow.display_mode);
 
   return NextResponse.json(
     {
@@ -129,10 +183,11 @@ export async function GET(req: NextRequest) {
       outside_ads:   outsideAds,
       fallback:      fallbacks,
       device: {
-        start_time:  deviceRow.start_time,
-        end_time:    deviceRow.end_time,
+        start_time:   deviceRow.start_time,
+        end_time:     deviceRow.end_time,
         display_mode: deviceRow.display_mode,
         device_type:  deviceRow.device_type ?? 'web',
+        device_id:    deviceId,
       },
       slot_scheduled: slotScheduled,
     },

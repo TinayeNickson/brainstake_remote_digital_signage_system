@@ -13,14 +13,14 @@ const locConfigSchema = z.object({
 const schemaV3 = z.object({
   ad_id:            z.string().uuid(),
   location_configs: z.array(locConfigSchema).min(1).max(20),
-  duration:         z.enum(['15', '30', '60']),
+  duration:         z.enum(['10', '15', '30', '60']),
   package_id:       z.string().uuid().optional().nullable(),
 });
 
 const schemaV2 = z.object({
   ad_id:           z.string().uuid(),
   location_slots:  z.record(z.string().uuid(), z.number().int().positive()),
-  duration:        z.enum(['15', '30', '60']),
+  duration:        z.enum(['10', '15', '30', '60']),
   start_date:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   end_date:        z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   days_of_week:    z.array(z.number().int().min(0).max(6)).min(1).max(7),
@@ -30,7 +30,7 @@ const schemaV2 = z.object({
 const schemaV1 = z.object({
   ad_id:         z.string().uuid(),
   location_ids:  z.array(z.string().uuid()).min(1).max(20),
-  duration:      z.enum(['15', '30', '60']),
+  duration:      z.enum(['10', '15', '30', '60']),
   slots_per_day: z.number().int().positive(),
   start_date:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   end_date:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

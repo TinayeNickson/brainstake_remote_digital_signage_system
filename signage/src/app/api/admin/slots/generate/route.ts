@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { requireRole } from '@/lib/auth';
 
 /**
  * POST /api/admin/slots/generate
@@ -13,6 +14,9 @@ import { supabaseAdmin } from '@/lib/supabase-server';
  * Can also be called with { all: true } to regenerate for ALL devices today.
  */
 export async function POST(req: NextRequest) {
+  const { error: authError } = await requireRole(['admin']);
+  if (authError) return authError;
+
   const admin = supabaseAdmin();
   const body  = await req.json().catch(() => ({}));
 

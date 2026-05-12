@@ -21,16 +21,17 @@ export function countScheduledDays(start: Date, end: Date, dow: number[]): numbe
 }
 
 export function getPricePerSlot(
-  location: Pick<Location, 'price_15s' | 'price_30s' | 'price_60s'>,
+  location: Pick<Location, 'price_10s' | 'price_15s' | 'price_30s' | 'price_60s'>,
   duration: AdDuration
 ): number {
+  if (duration === '10') return location.price_10s;
   if (duration === '15') return location.price_15s;
   if (duration === '30') return location.price_30s;
   return location.price_60s;
 }
 
 export function estimatePrice(
-  location: Pick<Location, 'price_15s' | 'price_30s' | 'price_60s'>,
+  location: Pick<Location, 'price_10s' | 'price_15s' | 'price_30s' | 'price_60s'>,
   duration: AdDuration,
   slotsPerDay: number,
   start: Date,

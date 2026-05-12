@@ -41,7 +41,7 @@ insert into public.contact_settings (key, label, value, description, is_public, 
 values
   ('support_phone',     'Support Phone Number',     '+263 772 123 456', 'Main support phone shown to customers when payment is under review or ads are suspended', true, 1),
   ('support_whatsapp',  'Support WhatsApp',       '+263 772 123 456', 'WhatsApp number for customer support',                                                  true, 2),
-  ('support_email',     'Support Email',            'support@brainstake.signage.tech', 'Support email address shown to customers',                                              true, 3),
+  ('support_email',     'Support Email',            'support@raevision.tech', 'Support email address shown to customers',                                              true, 3),
   ('review_message',    'Payment Review Message',   'Reviews typically take 24-48 hours. If not approved within 48 hours, please call our support line.', 'Message shown when payment is under review', true, 4),
   ('suspended_message', 'Suspended Ad Message',   'Your ad has been suspended. Please contact support for assistance.', 'Message shown when ad is suspended by admin', true, 5)
 on conflict (key) do nothing;

@@ -27,13 +27,10 @@ export default function Client({ payments }: { payments: Row[] }) {
 
   async function approve(id: string) {
     setActionErr(null);
-    setSuccessMsg(`Approve clicked for ${id}`);
     setBusy(id);
-    console.log('[approve] calling', `/api/payments/${id}/approve`);
     try {
       const res = await fetch(`/api/payments/${id}/approve`, { method: 'POST' });
       const text = await res.text();
-      console.log('[approve] status:', res.status, 'body:', text);
       let json: any = {};
       try { json = JSON.parse(text); } catch {}
       if (!res.ok) { setActionErr(json.error ?? `HTTP ${res.status}: ${text}`); return; }
@@ -51,14 +48,12 @@ export default function Client({ payments }: { payments: Row[] }) {
     if (!reason) return;
     setActionErr(null);
     setBusy(id);
-    console.log('[reject] calling', `/api/payments/${id}/reject`);
     try {
       const res = await fetch(`/api/payments/${id}/reject`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason }),
       });
       const text = await res.text();
-      console.log('[reject] status:', res.status, 'body:', text);
       let json: any = {};
       try { json = JSON.parse(text); } catch {}
       if (!res.ok) { setActionErr(json.error ?? `HTTP ${res.status}: ${text}`); return; }

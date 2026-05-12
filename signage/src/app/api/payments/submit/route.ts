@@ -6,7 +6,7 @@ const schema = z.union([
   z.object({
     campaign_id: z.string().uuid(),
     booking_id:  z.undefined().optional(),
-    amount:      z.number().positive(),
+    amount:      z.number().min(0),
     method:      z.enum(['ecocash', 'bank_transfer', 'onemoney', 'cash', 'other']),
     reference:   z.string().max(200).optional().nullable(),
     proof_path:  z.string().min(1),
@@ -15,7 +15,7 @@ const schema = z.union([
   z.object({
     booking_id:  z.string().uuid(),
     campaign_id: z.undefined().optional(),
-    amount:      z.number().positive(),
+    amount:      z.number().min(0),
     method:      z.enum(['ecocash', 'bank_transfer', 'onemoney', 'cash', 'other']),
     reference:   z.string().max(200).optional().nullable(),
     proof_path:  z.string().min(1),
@@ -43,8 +43,27 @@ export async function POST(req: NextRequest) {
 
     if (cErr || !campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
     if (campaign.customer_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    if (Number(p.amount) !== Number(campaign.total_price)) {
-      return NextResponse.json({ error: `Amount must equal ${campaign.total_price}` }, { status: 400 });
+
+    // If the campaign total_price is 0 (e.g. price columns were NULL when booked),
+    // recalculate from the booking subtotals and heal the campaign row.
+    let expectedAmount = Number(campaign.total_price);
+    if (expectedAmount === 0) {
+      const { data: bookingSums } = await supabase
+        .from('bookings')
+        .select('total_price')
+        .eq('campaign_id', p.campaign_id);
+      const recalc = (bookingSums ?? []).reduce((s: number, b: any) => s + Number(b.total_price ?? 0), 0);
+      if (recalc > 0) {
+        await supabase
+          .from('campaigns')
+          .update({ total_price: recalc })
+          .eq('id', p.campaign_id);
+        expectedAmount = recalc;
+      }
+    }
+
+    if (expectedAmount > 0 && Number(p.amount) !== expectedAmount) {
+      return NextResponse.json({ error: `Amount must equal ${expectedAmount}` }, { status: 400 });
     }
 
     const { data: payment, error: pErr } = await supabase

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { requireRole } from '@/lib/auth';
 
 /**
  * GET /api/admin/slots/view?device_id=<uuid>&date=<YYYY-MM-DD>
@@ -7,7 +8,10 @@ import { supabaseAdmin } from '@/lib/supabase-server';
  * Returns today's slot assignments for a device for the visual distribution chart.
  */
 export async function GET(req: NextRequest) {
-  const admin     = supabaseAdmin();
+  const { error: authError } = await requireRole(['admin']);
+  if (authError) return authError;
+
+  const admin = supabaseAdmin();
   const device_id = req.nextUrl.searchParams.get('device_id');
   const date      = req.nextUrl.searchParams.get('date') ?? new Date().toISOString().slice(0, 10);
 

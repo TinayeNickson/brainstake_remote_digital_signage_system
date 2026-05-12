@@ -53,11 +53,25 @@ export default async function CampaignPaymentPage({ params }: { params: { campai
       .select('id, amount, method, reference, status, submitted_at')
       .eq('campaign_id', params.campaignId)
       .order('submitted_at', { ascending: false })
-      .limit(1),
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (!campaign || campaign.customer_id !== user.id) {
     redirect('/dashboard');
+  }
+
+  // Heal stale 0 total_price — recalculate from booking subtotals
+  if (Number(campaign.total_price) === 0 && bookings && bookings.length > 0) {
+    const recalc = (bookings as any[]).reduce((s, b) => s + Number(b.total_price ?? 0), 0);
+    if (recalc > 0) {
+      campaign.total_price = recalc;
+      // Persist the fix so the API amount-equality check passes
+      await supabase
+        .from('campaigns')
+        .update({ total_price: recalc })
+        .eq('id', params.campaignId);
+    }
   }
 
   const bookingStatuses = (bookings ?? []).map((b: any) => b.status);

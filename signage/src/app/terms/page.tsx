@@ -3,7 +3,7 @@ import Link from 'next/link';
 import BrandMark from '@/components/BrandMark';
 
 export const metadata = {
-  title: 'Terms of Service — Brainstake',
+  title: 'Terms of Service — Raevision',
 };
 
 export default function TermsPage() {
@@ -26,9 +26,9 @@ export default function TermsPage() {
 
         <Section title="1. Introduction">
           <p>
-            These Terms of Service (&quot;Terms&quot;) govern your access to and use of the Brainstake digital
-            signage platform (&quot;Platform&quot;), operated by Brainstake (Private) Limited
-            (&quot;Brainstake&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). By registering an account or
+            These Terms of Service (&quot;Terms&quot;) govern your access to and use of the Raevision digital
+            signage platform (&quot;Platform&quot;), operated by Raevision (Private) Limited
+            (&quot;Raevision&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). By registering an account or
             placing a booking, you agree to be bound by these Terms in full. If you do not agree, do not use
             the Platform.
           </p>
@@ -46,8 +46,8 @@ export default function TermsPage() {
           <p>
             You are responsible for maintaining the confidentiality of your login credentials. You agree to
             notify us immediately at{' '}
-            <a href="mailto:info@brainstake.tech" className="text-[#0f7b4a]">info@brainstake.tech</a>{' '}
-            if you suspect unauthorised access to your account. Brainstake is not liable for any loss arising
+            <a href="mailto:info@raevision.tech" className="text-[#0f7b4a]">info@raevision.tech</a>{' '}
+            if you suspect unauthorised access to your account. Raevision is not liable for any loss arising
             from your failure to keep credentials secure.
           </p>
         </Section>
@@ -67,7 +67,7 @@ export default function TermsPage() {
               dates and operating hours.
             </li>
             <li>
-              Brainstake does not guarantee uninterrupted display due to factors outside our control
+              Raevision does not guarantee uninterrupted display due to factors outside our control
               (power outages, connectivity disruptions, hardware failure). We will make reasonable efforts
               to compensate for significant lost airtime at our discretion.
             </li>
@@ -99,7 +99,7 @@ export default function TermsPage() {
           <ul>
             <li>
               Cancellation requests must be submitted in writing to{' '}
-              <a href="mailto:info@brainstake.tech" className="text-[#0f7b4a]">info@brainstake.tech</a>{' '}
+              <a href="mailto:info@raevision.tech" className="text-[#0f7b4a]">info@raevision.tech</a>{' '}
               at least 5 business days before the campaign start date.
             </li>
             <li>
@@ -129,14 +129,14 @@ export default function TermsPage() {
               product or service prohibited by law.</li>
           </ul>
           <p>
-            Brainstake reserves the right to remove or refuse any content that violates this policy,
+            Raevision reserves the right to remove or refuse any content that violates this policy,
             without refund, and may suspend or terminate accounts that repeatedly breach these rules.
           </p>
         </Section>
 
         <Section title="8. Emergency Broadcasts">
           <p>
-            Brainstake reserves the right to interrupt scheduled advertising to display emergency or
+            Raevision reserves the right to interrupt scheduled advertising to display emergency or
             public-interest broadcasts without notice or compensation. These interruptions will be kept
             to the minimum duration necessary.
           </p>
@@ -145,25 +145,25 @@ export default function TermsPage() {
         <Section title="9. Intellectual Property">
           <p>
             You retain ownership of the creative content you upload. By submitting content to the
-            Platform you grant Brainstake a non-exclusive, royalty-free licence to display that content
+            Platform you grant Raevision a non-exclusive, royalty-free licence to display that content
             on the agreed screens for the booked period. This licence ends when the booking period expires
             or the content is removed.
           </p>
           <p>
             All Platform software, design, trademarks, and branding are the exclusive property of
-            Brainstake (Private) Limited. You may not copy, reproduce, or use them without written
+            Raevision (Private) Limited. You may not copy, reproduce, or use them without written
             permission.
           </p>
         </Section>
 
         <Section title="10. Limitation of Liability">
           <p>
-            To the maximum extent permitted by law, Brainstake&apos;s total liability to you for any claim
+            To the maximum extent permitted by law, Raevision&apos;s total liability to you for any claim
             arising out of or in connection with these Terms or your use of the Platform shall not exceed
             the amount you paid for the specific booking giving rise to the claim.
           </p>
           <p>
-            Brainstake is not liable for indirect, incidental, special, or consequential damages including
+            Raevision is not liable for indirect, incidental, special, or consequential damages including
             loss of profit, loss of data, or reputational damage, even if we have been advised of the
             possibility of such damages.
           </p>
@@ -172,7 +172,7 @@ export default function TermsPage() {
         <Section title="11. Termination">
           <p>
             We may suspend or terminate your account at any time if you breach these Terms, attempt to
-            abuse the Platform, or engage in conduct that is harmful to Brainstake or other users.
+            abuse the Platform, or engage in conduct that is harmful to Raevision or other users.
             On termination, any pending campaigns will be cancelled and prepaid amounts refunded on a
             pro-rata basis for any unserved days, at our discretion.
           </p>
@@ -196,14 +196,14 @@ export default function TermsPage() {
         <Section title="14. Contact">
           <p>
             Questions about these Terms? Contact us at{' '}
-            <a href="mailto:info@brainstake.tech" className="text-[#0f7b4a]">info@brainstake.tech</a>.
+            <a href="mailto:info@raevision.tech" className="text-[#0f7b4a]">info@raevision.tech</a>.
           </p>
         </Section>
       </article>
 
       <footer className="border-t border-[#ebe7dd] py-8 text-center text-[12px] text-ink-900/40">
         <div className="flex items-center justify-center gap-4">
-          <span>© {new Date().getFullYear()} Brainstake (Private) Limited</span>
+          <span>© {new Date().getFullYear()} Raevision (Private) Limited</span>
           <span>·</span>
           <Link href="/privacy" className="hover:text-ink-900/70 transition-colors">Privacy Policy</Link>
         </div>

@@ -2,7 +2,7 @@
 
 export type UserRole = 'customer' | 'accountant' | 'admin';
 export type AdFormat = 'image' | 'video' | 'audio';
-export type AdDuration = '15' | '30' | '60';
+export type AdDuration = '10' | '15' | '30' | '60';
 export type BookingStatus =
   | 'awaiting_payment'
   | 'payment_submitted'
@@ -32,6 +32,7 @@ export interface Location {
   id: string;
   name: string;
   description: string | null;
+  price_10s: number;
   price_15s: number;
   price_30s: number;
   price_60s: number;
@@ -45,6 +46,7 @@ export interface Package {
   name: string;
   description: string | null;
   base_slots_per_day: number;
+  allows_10s: boolean;
   allows_15s: boolean;
   allows_30s: boolean;
   allows_60s: boolean;

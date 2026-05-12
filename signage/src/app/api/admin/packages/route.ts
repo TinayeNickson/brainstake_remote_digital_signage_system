@@ -6,6 +6,7 @@ const createSchema = z.object({
   name: z.string().min(2).max(120),
   description: z.string().max(500).nullable().optional(),
   base_slots_per_day: z.number().int().min(1),
+  allows_10s: z.boolean().default(false),
   allows_15s: z.boolean().default(true),
   allows_30s: z.boolean().default(true),
   allows_60s: z.boolean().default(false),

@@ -1,9 +1,29 @@
 -- ============================================================================
--- Digital Signage Platform — COMPLETE SCHEMA
+-- Digital Signage Platform — COMPLETE SCHEMA  (v17)
 -- Single-file, run-once setup for a fresh Supabase project.
 --
--- Combines: schema.sql + all migrations v3 → v14 in correct order,
+-- Combines: schema.sql + all migrations v2 → v17 in correct order,
 -- deduplicated, with later versions overriding earlier ones.
+--
+-- Migration history:
+--   v2  — packages table (allows_15s/30s/60s)
+--   v3  — features (audio format, fallback_content, system_overrides)
+--   v4  — operating hours (start_time/end_time on devices)
+--   v5  — device tokens (api_token, pairing_code, pair_attempts)
+--   v6  — multi-location bookings / campaigns
+--   v6b — payments RLS fix
+--   v6c — submit_payment RPC
+--   v7  — player_feed RPC fix
+--   v8  — slot engine (ad_slot_assignments, generate_slot_assignments, player_slots)
+--   v9  — per-location slots (create_campaign_atomic_v2)
+--   v10 — per-location schedules (create_campaign_atomic_v3)
+--   v11 — slot engine improvements
+--   v12 — unified player (device_type, pairing flow)
+--   v13 — production hardening (RLS, revokes, storage policies)
+--   v14 — fallback storage bucket + policies
+--   v15 — admin suspension, notifications, booking date management
+--   v16 — fix approve_payment for campaign multi-row UPDATE
+--   v17 — 10-second slot support (ad_duration enum, price_10s, allows_10s, RPCs)
 --
 -- HOW TO USE:
 --   1. Create a new Supabase project.
@@ -32,7 +52,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type public.ad_duration as enum ('15', '30', '60');
+  create type public.ad_duration as enum ('10', '15', '30', '60');
 exception when duplicate_object then null; end $$;
 
 do $$ begin
@@ -88,8 +108,9 @@ create table if not exists public.locations (
   id                 uuid        primary key default gen_random_uuid(),
   name               text        not null,
   description        text,
-  price_15s          numeric(12,2) not null check (price_15s  >= 0),
-  price_30s          numeric(12,2) not null check (price_30s  >= 0),
+  price_10s          numeric(12,2) not null default 0 check (price_10s  >= 0),
+  price_15s          numeric(12,2) not null default 0 check (price_15s  >= 0),
+  price_30s          numeric(12,2) not null default 0 check (price_30s  >= 0),
   price_60s          numeric(12,2) not null default 0 check (price_60s >= 0),
   max_slots_per_day  int         not null check (max_slots_per_day > 0),
   active             boolean     not null default true,
@@ -103,6 +124,7 @@ create table if not exists public.packages (
   name                text        not null,
   description         text,
   base_slots_per_day  int         not null check (base_slots_per_day > 0),
+  allows_10s          boolean     not null default false,
   allows_15s          boolean     not null default true,
   allows_30s          boolean     not null default true,
   allows_60s          boolean     not null default false,
@@ -492,6 +514,7 @@ declare
 begin
   select
     case
+      when p_duration = '10' then price_10s
       when p_duration = '15' then price_15s
       when p_duration = '30' then price_30s
       else price_60s
@@ -586,6 +609,7 @@ begin
   ) then raise exception 'Ad not found or not owned by caller'; end if;
 
   select case
+      when p_duration = '10' then price_10s
       when p_duration = '15' then price_15s
       when p_duration = '30' then price_30s
       else price_60s
@@ -692,6 +716,7 @@ begin
 
   foreach v_loc_id in array p_location_ids loop
     select case
+        when p_duration = '10' then price_10s
         when p_duration = '15' then price_15s
         when p_duration = '30' then price_30s
         else price_60s
@@ -816,6 +841,7 @@ begin
     if v_slots < 1 then raise exception 'slots_per_day must be >= 1 for location %', v_loc_id; end if;
 
     select case
+        when p_duration = '10' then price_10s
         when p_duration = '15' then price_15s
         when p_duration = '30' then price_30s
         else price_60s
@@ -964,15 +990,18 @@ begin
     select array_agg(el::int) into v_dow from jsonb_array_elements_text(v_cfg->'days_of_week') el;
     v_days := public.count_scheduled_days(v_start, v_end, v_dow);
 
-    select case
+    select
+      coalesce(case
+        when p_duration = '10' then price_10s
         when p_duration = '15' then price_15s
         when p_duration = '30' then price_30s
         else price_60s
-      end, max_slots_per_day
+      end, 0),
+      max_slots_per_day
     into v_price, v_max_slots
     from public.locations where id = v_loc_id and active = true for update;
 
-    if v_price is null then raise exception 'Location % not found or inactive', v_loc_id; end if;
+    if v_max_slots is null then raise exception 'Location % not found or inactive', v_loc_id; end if;
     if v_slots > v_max_slots then
       raise exception 'slots_per_day (%) exceeds max (%) for location %', v_slots, v_max_slots, v_loc_id;
     end if;
@@ -1102,6 +1131,7 @@ begin
 end;
 $$;
 
+-- v16 fix: removed RETURNING from multi-row campaign UPDATE
 create or replace function public.approve_payment(p_payment_id uuid)
 returns public.receipts
 language plpgsql
@@ -1109,14 +1139,15 @@ security definer
 set search_path = public
 as $$
 declare
-  v_user    uuid := auth.uid();
-  v_role    public.user_role;
-  v_payment public.payments;
-  v_booking public.bookings;
-  v_receipt public.receipts;
-  v_num     text;
-  v_cust    uuid;
-  v_amount  numeric;
+  v_user     uuid := auth.uid();
+  v_role     public.user_role;
+  v_payment  public.payments;
+  v_booking  public.bookings;
+  v_campaign public.campaigns;
+  v_receipt  public.receipts;
+  v_num      text;
+  v_cust     uuid;
+  v_amount   numeric;
 begin
   select role into v_role from public.profiles where id = v_user;
   if v_role not in ('accountant', 'admin') then
@@ -1124,15 +1155,22 @@ begin
   end if;
 
   update public.payments
-     set status = 'approved', reviewed_at = now(), reviewed_by = v_user
+     set status      = 'approved',
+         reviewed_at = now(),
+         reviewed_by = v_user
    where id = p_payment_id and status = 'pending'
   returning * into v_payment;
 
-  if v_payment.id is null then raise exception 'Payment not found or not pending'; end if;
+  if v_payment.id is null then
+    raise exception 'Payment not found or not pending';
+  end if;
 
   if v_payment.campaign_id is not null then
+    -- campaign payment: activate ALL bookings (no RETURNING — multiple rows)
     update public.bookings
-       set status = 'active', approved_at = now(), approved_by = v_user
+       set status      = 'active',
+           approved_at = now(),
+           approved_by = v_user
      where campaign_id = v_payment.campaign_id;
 
     select customer_id, total_price into v_cust, v_amount
@@ -1146,8 +1184,11 @@ begin
       v_payment.id, v_cust, v_payment.amount
     ) returning * into v_receipt;
   else
+    -- single-booking payment
     update public.bookings
-       set status = 'active', approved_at = now(), approved_by = v_user
+       set status      = 'active',
+           approved_at = now(),
+           approved_by = v_user
      where id = v_payment.booking_id
     returning * into v_booking;
 
@@ -2233,13 +2274,13 @@ grant insert, update on public.campaigns to authenticated;
 -- DEFAULT SEED DATA
 -- ============================================================================
 
--- Packages
-insert into public.packages (name, description, base_slots_per_day, allows_15s, allows_30s, allows_60s, sort_order)
+-- Packages (v17: includes allows_10s)
+insert into public.packages (name, description, base_slots_per_day, allows_10s, allows_15s, allows_30s, allows_60s, sort_order)
 values
-  ('Basic',       'Entry-level exposure. 15s or 30s slots.',        2,  true, true, false, 1),
-  ('Standard',    'More daily plays. 15s or 30s slots.',            4,  true, true, false, 2),
-  ('Premium',     'High-frequency daily coverage. 15s or 30s.',     8,  true, true, false, 3),
-  ('Pro Premium', 'Maximum impact — includes 60-second slots.',    12,  true, true, true,  4)
+  ('Basic',       'Entry-level exposure. 15s or 30s slots.',        2,  false, true, true, false, 1),
+  ('Standard',    'More daily plays. 15s or 30s slots.',            4,  false, true, true, false, 2),
+  ('Premium',     'High-frequency daily coverage. 15s or 30s.',     8,  false, true, true, false, 3),
+  ('Pro Premium', 'Maximum impact — includes 60-second slots.',    12,  false, true, true, true,  4)
 on conflict do nothing;
 
 -- Payment settings
@@ -2257,11 +2298,43 @@ insert into public.contact_settings (key, label, value, description, is_public, 
 values
   ('support_phone',     'Support Phone Number',     '+263 772 123 456', 'Main support phone shown to customers when payment is under review or ads are suspended', true, 1),
   ('support_whatsapp',  'Support WhatsApp',       '+263 772 123 456', 'WhatsApp number for customer support',                                                  true, 2),
-  ('support_email',     'Support Email',            'support@brainstake.signage.tech', 'Support email address shown to customers',                                              true, 3),
+  ('support_email',     'Support Email',            'support@raevision.tech', 'Support email address shown to customers',                                              true, 3),
   ('review_message',    'Payment Review Message',   'Reviews typically take 24-48 hours. If not approved within 48 hours, please call our support line.', 'Message shown when payment is under review', true, 4),
   ('suspended_message', 'Suspended Ad Message',   'Your ad has been suspended. Please contact support for assistance.', 'Message shown when ad is suspended by admin', true, 5)
 on conflict (key) do nothing;
 
+
+-- ============================================================================
+-- v17 — MIGRATION BLOCK (run on EXISTING databases only, skip on fresh installs)
+-- For a fresh install the tables/enum above already include these columns.
+-- For an existing database, run this block separately after deploying the app.
+-- ============================================================================
+
+-- ALTER TABLE public.locations
+--   ADD COLUMN IF NOT EXISTS price_10s numeric(12,2) NOT NULL DEFAULT 0
+--     CHECK (price_10s >= 0);
+
+-- ALTER TABLE public.packages
+--   ADD COLUMN IF NOT EXISTS allows_10s boolean NOT NULL DEFAULT false;
+
+-- DO $$ BEGIN
+--   ALTER TYPE public.ad_duration ADD VALUE IF NOT EXISTS '10' BEFORE '15';
+-- EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+
+-- ============================================================================
+-- v18 — MIGRATION BLOCK (run on EXISTING databases only, skip on fresh installs)
+-- Fixes NULL price columns on locations that were created before DEFAULT 0 was set.
+-- ============================================================================
+
+-- ALTER TABLE public.locations
+--   ALTER COLUMN price_15s SET DEFAULT 0,
+--   ALTER COLUMN price_30s SET DEFAULT 0;
+
+-- UPDATE public.locations SET price_15s = 0 WHERE price_15s IS NULL;
+-- UPDATE public.locations SET price_30s = 0 WHERE price_30s IS NULL;
+-- UPDATE public.locations SET price_10s = 0 WHERE price_10s IS NULL;
+-- UPDATE public.locations SET price_60s = 0 WHERE price_60s IS NULL;
 
 -- ============================================================================
 -- DONE

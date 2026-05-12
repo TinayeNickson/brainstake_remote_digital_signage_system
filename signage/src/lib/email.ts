@@ -46,15 +46,15 @@ export function receiptHtml(d: ReceiptEmailData): string {
             <td style="text-align:right;vertical-align:top;">
               <!-- Logo box -->
               <div style="display:inline-block;background:rgba(255,255,255,0.12);border-radius:10px;padding:8px;width:48px;height:48px;box-sizing:border-box;">
-                <img src="${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/logo.png" alt="Brainstake" width="32" height="32" style="display:block;width:32px;height:32px;object-fit:contain;" />
+                <img src="${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/logo.png" alt="Raevision" width="32" height="32" style="display:block;width:32px;height:32px;object-fit:contain;" />
               </div>
             </td>
           </tr>
         </table>
         <!-- Company info -->
         <div style="border-top:1px solid rgba(255,255,255,0.12);padding-top:14px;">
-          <div style="color:#fff;font-size:15px;font-weight:700;letter-spacing:-.01em;">Brainstake</div>
-          <div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:2px;">Digital Signage Advertising &nbsp;&middot;&nbsp; info@brainstake.tech</div>
+          <div style="color:#fff;font-size:15px;font-weight:700;letter-spacing:-.01em;">Raevision</div>
+          <div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:2px;">Digital Signage Advertising &nbsp;&middot;&nbsp; info@raevision.tech</div>
         </div>
       </div>
 
@@ -102,13 +102,13 @@ export function receiptHtml(d: ReceiptEmailData): string {
         <!-- Note -->
         <p style="font-size:12px;color:#aaa;text-align:center;margin:0;line-height:1.6;">
           Your advertisement is now active. This is a computer-generated receipt.<br/>
-          Log in to your Brainstake portal to view and save a PDF copy at any time.
+          Log in to your Raevision portal to view and save a PDF copy at any time.
         </p>
       </div>
 
       <!-- Footer -->
       <div style="padding:14px 36px;background:#f6f4ef;border-top:1px solid #e8e4dc;font-size:11px;color:#aaa;text-align:center;letter-spacing:.05em;">
-        Brainstake &middot; Digital Signage Advertising &middot; info@brainstake.tech
+        Raevision &middot; Digital Signage Advertising &middot; info@raevision.tech
       </div>
     </div>
   </div>

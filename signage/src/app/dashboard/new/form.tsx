@@ -109,6 +109,7 @@ export default function NewBookingForm({
     if (!selectedPkg) return;
     if (duration === '60' && !selectedPkg.allows_60s) setDuration('15');
     if (duration === '30' && !selectedPkg.allows_30s) setDuration('15');
+    if (duration === '10' && !selectedPkg.allows_10s) setDuration('15');
     setGlobalSlots(selectedPkg.base_slots_per_day);
   }, [selectedPkg]); // eslint-disable-line
 
@@ -194,6 +195,9 @@ export default function NewBookingForm({
   function validateStep3() {
     if (!selectedPkg)             { setStep3Err('Please select a package.'); return false; }
     if (selectedLocs.length === 0){ setStep3Err('Please select at least one location.'); return false; }
+    if (duration === '10' && !selectedPkg.allows_10s) {
+      setStep3Err('10-second slots are not available in the selected package.'); return false;
+    }
     if (duration === '60' && !selectedPkg.allows_60s) {
       setStep3Err('60-second slots are only available in the Pro Premium package.'); return false;
     }
@@ -479,6 +483,9 @@ export default function NewBookingForm({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <p className="font-bold text-ink-900">{pkg.name}</p>
+                            {pkg.allows_10s && (
+                              <span className="inline-flex px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-semibold">10s available</span>
+                            )}
                             {pkg.allows_60s && (
                               <span className="inline-flex px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-semibold">60s available</span>
                             )}
@@ -490,7 +497,7 @@ export default function NewBookingForm({
                           {pkg.description && <p className="text-sm text-ink-900/50 mb-2">{pkg.description}</p>}
                           <div className="flex flex-wrap gap-1.5">
                             <Chip icon={<SlotsIcon />} label={`${pkg.base_slots_per_day} base plays/day`} />
-                            <Chip icon={<ClockIcon />} label={[pkg.allows_15s && '15s', pkg.allows_30s && '30s', pkg.allows_60s && '60s'].filter(Boolean).join(' · ')} />
+                            <Chip icon={<ClockIcon />} label={[pkg.allows_10s && '10s', pkg.allows_15s && '15s', pkg.allows_30s && '30s', pkg.allows_60s && '60s'].filter(Boolean).join(' · ')} />
                           </div>
                         </div>
                       </div>
@@ -537,6 +544,7 @@ export default function NewBookingForm({
                           <p className={`font-semibold text-[14px] ${sel ? 'text-brand' : 'text-ink-900'}`}>{loc.name}</p>
                           {loc.description && <p className="text-xs text-ink-900/45 mt-0.5">{loc.description}</p>}
                           <div className="flex gap-3 mt-1 text-[11px] text-ink-900/50">
+                            {loc.price_10s > 0 && <span>10s — {money(loc.price_10s)}/slot</span>}
                             <span>15s — {money(loc.price_15s)}/slot</span>
                             <span>30s — {money(loc.price_30s)}/slot</span>
                             {loc.price_60s > 0 && <span>60s — {money(loc.price_60s)}/slot</span>}
@@ -592,8 +600,9 @@ export default function NewBookingForm({
             <div>
               <label className="label">Slot duration <Required /></label>
               <div className="flex gap-2">
-                {(['15', '30', '60'] as AdDuration[]).map(d => {
-                  const allowed = d === '15' ? (selectedPkg?.allows_15s ?? true)
+                {(['10', '15', '30', '60'] as AdDuration[]).map(d => {
+                  const allowed = d === '10' ? (selectedPkg?.allows_10s ?? false)
+                                : d === '15' ? (selectedPkg?.allows_15s ?? true)
                                 : d === '30' ? (selectedPkg?.allows_30s ?? true)
                                 : (selectedPkg?.allows_60s ?? false);
                   return (
@@ -604,7 +613,8 @@ export default function NewBookingForm({
                         : duration === d ? 'border-brand bg-brand-soft/30 text-brand'
                         : 'border-ink-100 bg-white hover:border-brand/40 text-ink-900'}`}>
                       {d}s
-                      {d === '60' && !allowed && <span className="block text-[9px] font-normal mt-0.5">Pro Premium only</span>}
+                      {d === '60' && !allowed && <span className="block text-[9px] font-normal mt-0.5">Pro only</span>}
+                      {d === '10' && !allowed && <span className="block text-[9px] font-normal mt-0.5">Pkg only</span>}
                     </button>
                   );
                 })}
@@ -748,7 +758,7 @@ export default function NewBookingForm({
           </ReviewSection>
 
           {/* Pricing breakdown */}
-          <div className="rounded-xl bg-[#0a2e1f] text-white p-5">
+          <div className="rounded-xl bg-brand-navy text-white p-5">
             <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">Amount Due</p>
             <div className="space-y-1 text-sm text-white/60 mb-4">
               <div className="flex justify-between text-white/40 text-[10px] uppercase tracking-widest mb-1">

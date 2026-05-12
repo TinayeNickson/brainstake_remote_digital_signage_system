@@ -9,7 +9,7 @@ interface FeedAd {
   ad_id: string;
   title: string;
   format: 'image' | 'video';
-  duration: '15' | '30' | '60';
+  duration: '10' | '15' | '30' | '60';
   media_url: string;
   slots_per_day: number;
   display_mode: DisplayMode;
@@ -85,11 +85,14 @@ function expandAds(ads: FeedAd[]): FeedAd[] {
 function buildPlaylist(ads: FeedAd[]): FeedAd[] {
   if (ads.length === 0) return [];
 
-  // slot_index means the DB already ordered them by fair distribution
+  // slot_index present → server already ordered slots (ads interleaved with fallback).
+  // Sort by slot_index to guarantee correct playback order regardless of fetch order.
   if (ads[0].slot_index !== undefined) {
-    return expandAds(ads);
+    const sorted = [...ads].sort((a, b) => (a.slot_index ?? 0) - (b.slot_index ?? 0));
+    return expandAds(sorted);
   }
 
+  // Fallback: client-side fair distribution when server sends no slot_index.
   const out: FeedAd[] = [];
   const maxSlots = Math.max(...ads.map(a => a.slots_per_day || 1));
   for (let i = 0; i < maxSlots; i++) {
@@ -215,16 +218,17 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
       const headers: HeadersInit = token
         ? { Authorization: `Bearer ${token}` }
         : {};
-      const res = await fetch('/api/device/content', { cache: 'no-store', headers });
+      const res = await fetch(`/api/player/${deviceId}/feed`, { cache: 'no-store', headers });
       if (!res.ok) throw new Error(`feed ${res.status}`);
-      const { ads, outside_ads, fallback, override: ov, device: dev } =
-        await res.json() as {
-          ads:         FeedAd[];
-          outside_ads: FeedAd[];
+      const json = await res.json();
+      const { fallback, override: ov, device: dev } = json as {
           fallback:    FallbackItem[];
           override:    Override | null;
           device:      DeviceInfo | null;
         };
+      // Legacy feed uses outsideAds key; content API uses outside_ads
+      const ads        = (json.ads         ?? []) as FeedAd[];
+      const outside_ads = (json.outside_ads ?? json.outsideAds ?? []) as FeedAd[];
 
       const normalAds  = ads        ?? [];
       const extAds     = outside_ads ?? [];

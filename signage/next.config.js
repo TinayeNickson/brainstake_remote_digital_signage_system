@@ -4,6 +4,8 @@ const SUPABASE_HOST = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
   : '*.supabase.co';
 
+const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://brainstake.signage.tech';
+
 const securityHeaders = [
   { key: 'X-Frame-Options',        value: 'SAMEORIGIN' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -21,11 +23,11 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  // required by Next.js
-      "style-src 'self' 'unsafe-inline'",
-      `img-src 'self' data: blob: https://${SUPABASE_HOST}`,
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      `img-src 'self' data: blob: https://${SUPABASE_HOST} https://images.unsplash.com`,
       `media-src 'self' blob: https://${SUPABASE_HOST}`,
-      `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST}`,
-      "font-src 'self'",
+      `connect-src 'self' https://${SUPABASE_HOST} wss://${SUPABASE_HOST} https://images.unsplash.com`,
+      "font-src 'self' https://fonts.gstatic.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -46,6 +48,10 @@ const nextConfig = {
         hostname: SUPABASE_HOST,
         pathname: '/storage/v1/object/public/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
   },
 
@@ -65,7 +71,7 @@ const nextConfig = {
       {
         source: '/api/device/(.*)',
         headers: [
-          { key: 'Access-Control-Allow-Origin',  value: 'https://brainstake.signage.tech' },
+          { key: 'Access-Control-Allow-Origin',  value: SITE_ORIGIN },
           { key: 'Access-Control-Allow-Methods', value: 'GET, POST, OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'Authorization, Content-Type' },
         ],

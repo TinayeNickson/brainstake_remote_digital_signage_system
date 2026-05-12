@@ -11,24 +11,16 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const { error, user, role } = await requireRole(['admin']);
-  console.log('Auth check:', { user: user?.id, role, hasError: !!error });
-  if (error) {
-    console.error('Auth failed:', error);
-    return error;
-  }
+  const { error, user } = await requireRole(['admin']);
+  if (error) return error;
 
   const body = await req.json().catch(() => null);
-  console.log('Date update request body:', body);
-
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    console.error('Schema validation failed:', parsed.error.flatten());
     return NextResponse.json({ error: 'Invalid input', detail: parsed.error.flatten() }, { status: 400 });
   }
 
   const { booking_id, start_date, end_date, reason } = parsed.data;
-  console.log('Parsed params:', { booking_id, start_date, end_date, reason });
 
   // Validate dates
   if (new Date(end_date) < new Date(start_date)) {
@@ -47,7 +39,6 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (fetchErr || !booking) {
-      console.error('Booking fetch error:', fetchErr);
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
@@ -68,7 +59,6 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (updateErr) {
-      console.error('Update error:', updateErr);
       return NextResponse.json({ error: 'Failed to update booking' }, { status: 500 });
     }
 
@@ -80,7 +70,7 @@ export async function POST(req: NextRequest) {
       .or(`play_date.lt.${start_date},play_date.gt.${end_date}`);
 
     if (deleteErr) {
-      console.error('Delete old dates error:', deleteErr);
+      // non-fatal: old dates outside new range may not exist
     }
 
     // Generate new dates to insert
@@ -104,7 +94,7 @@ export async function POST(req: NextRequest) {
         .upsert(date, { onConflict: 'booking_id,play_date' });
       
       if (insertErr) {
-        console.error('Insert date error:', insertErr);
+        // non-fatal: duplicate dates skipped via upsert
       }
     }
 
@@ -131,13 +121,12 @@ export async function POST(req: NextRequest) {
       });
 
     if (notifErr) {
-      console.error('Notification error:', notifErr);
+      // non-fatal: notification failure should not block the date update
     }
 
     return NextResponse.json({ booking: updatedBooking });
 
-  } catch (err) {
-    console.error('Unexpected error:', err);
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

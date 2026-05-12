@@ -17,7 +17,7 @@ export default function PrintButton() {
       // Fetch logo and convert to base64 so jsPDF can embed it
       let logoBase64: string | null = null;
       try {
-        const res = await fetch('/logo.png');
+        const res = await fetch('/logo.jpg');
         const blob = await res.blob();
         logoBase64 = await new Promise<string>(resolve => {
           const reader = new FileReader();
@@ -34,20 +34,20 @@ export default function PrintButton() {
 
       // ── LOGO top-right ────────────────────────────────────────────
       if (logoBase64) {
-        doc.addImage(logoBase64, 'PNG', R - 20, y - 4, 20, 20);
+        doc.addImage(logoBase64, 'JPEG', R - 20, y - 4, 20, 20);
       }
 
       // ── COMPANY name + contact (top-left) ─────────────────────────
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
       doc.setTextColor(10, 46, 31);
-      doc.text('Brainstake', pad, y + 4);
+      doc.text('Raevision', pad, y + 4);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(120, 120, 120);
       doc.text('Digital Signage Advertising', pad, y + 10);
-      doc.text('info@brainstake.tech', pad, y + 15);
+      doc.text('info@raevision.tech', pad, y + 15);
 
       y += 28;
 
@@ -189,9 +189,12 @@ export default function PrintButton() {
       doc.setFontSize(7.5);
       doc.setTextColor(180, 180, 180);
       doc.text('This is a computer-generated receipt and does not require a signature.', W / 2, y, { align: 'center' });
-      doc.text('Brainstake  ·  Digital Signage Advertising  ·  info@brainstake.tech',   W / 2, y + 5, { align: 'center' });
+      doc.text('Raevision  ·  Digital Signage Advertising  ·  info@raevision.tech',   W / 2, y + 5, { align: 'center' });
 
       doc.save(`Receipt-${get('receiptNumber')}.pdf`);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Could not generate PDF. Please try again.');
     } finally {
       setLoading(false);
     }

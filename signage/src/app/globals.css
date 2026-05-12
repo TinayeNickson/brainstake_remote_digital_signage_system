@@ -4,26 +4,191 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* neutral ink scale (unchanged) */
-  --ink-950: #0d0d0b;
-  --ink-900: #1a1a17;
-  --ink-200: #d2cdc0;
-  --ink-100: #ebe7dd;
-  --ink-50:  #f6f4ef;
+@layer base {
+  :root {
+    /* Landing page premium tokens */
+    --brand-navy:   #0B0B2B;
+    --brand-paper:  #E8E4F0;
+    --gold:         #C9A84C;
+    --gold-light:   #E8C96A;
+    --purple:       #6C3BAA;
+    --purple-light: #8B6BC5;
 
-  /* RAREVISION colors — purple and orange from the logo
-     RARE (purple) #2d2a6e and VISION (orange) #f5a623 */
-  --brand:       #2d2a6e;   /* primary purple */
-  --brand-dark:  #1e1c4d;   /* hover / pressed */
-  --brand-deep:  #0f0e26;   /* hero panels, page dressing */
-  --brand-soft:  #e8e6f0;   /* tints, chip backgrounds */
-  --brand-accent: #f5a623;   /* accent orange (VISION) */
-  --brand-live:  #f5a623;   /* pulse/LIVE indicator - orange for RAREVISION */
+    /* Shared ink scale */
+    --ink-950: #0d0d0b;
+    --ink-900: #1a1a2e;
+    --ink-200: #d1cfe8;
+    --ink-100: #e8e4f0;
+    --ink-50:  #f6f4ef;
+
+    /* App brand vars (dashboard/auth) */
+    --brand:        #6C3BAA;
+    --brand-dark:   #5a2f8e;
+    --brand-deep:   #0B0B2B;
+    --brand-soft:   #e8e4f0;
+    --brand-accent: #C9A84C;
+    --brand-live:   #C9A84C;
+  }
+
+  * {
+    @apply box-border;
+  }
+
+  html {}
+
+  body {
+    @apply text-brand-paper overflow-x-hidden;
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+
+  /* Premium noise texture overlay */
+  body::before {
+    content: '';
+    @apply fixed inset-0 pointer-events-none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    z-index: 1;
+    opacity: 0.35;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Account for fixed navbar on anchor scroll */
+  section[id] {
+    scroll-margin-top: 80px;
+  }
+}
+
+@layer components {
+  /* Section label with gold line */
+  .section-label {
+    @apply inline-flex items-center gap-3 text-xs font-medium uppercase tracking-[0.22em] text-gold mb-5;
+  }
+  .section-label::before {
+    content: '';
+    @apply w-6 h-px bg-gold;
+  }
+
+  /* Main section titles */
+  .section-title {
+    @apply font-display text-[clamp(3.5rem,7vw,7rem)] leading-[0.92] tracking-[0.02em] mb-6 text-white;
+  }
+
+  /* Glow border effects */
+  .glow-border-gold {
+    box-shadow: 0 0 20px rgba(201,168,76,0.15), 0 0 60px rgba(201,168,76,0.08), inset 0 0 40px rgba(201,168,76,0.05);
+  }
+  .glow-border-purple {
+    box-shadow: 0 0 20px rgba(108,59,170,0.15), 0 0 60px rgba(108,59,170,0.08), inset 0 0 40px rgba(108,59,170,0.05);
+  }
+  .glow-border-premium {
+    box-shadow: 0 0 20px rgba(201,168,76,0.1), 0 0 40px rgba(108,59,170,0.1), 0 0 60px rgba(201,168,76,0.05), inset 0 0 40px rgba(201,168,76,0.05);
+  }
+
+  /* Text gradients */
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #C9A84C 0%, #E8C96A 50%, #C9A84C 100%);
+  }
+  .text-gradient-purple {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #6C3BAA 0%, #8B6BC5 50%, #6C3BAA 100%);
+  }
+  .text-gradient-premium {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #C9A84C 0%, #6C3BAA 100%);
+  }
+
+  /* Card styles */
+  .card-premium {
+    @apply relative border-2 border-gold/20 rounded-lg overflow-hidden;
+    background: linear-gradient(145deg, rgba(201,168,76,0.05), rgba(108,59,170,0.05));
+  }
+  .card-premium:hover {
+    @apply border-gold/40;
+    box-shadow: 0 0 30px rgba(201,168,76,0.1);
+  }
+
+  /* Button variants */
+  .btn-gold {
+    @apply bg-gold text-brand-navy font-semibold px-8 py-3.5 rounded-sm uppercase tracking-[0.12em] text-sm;
+    transition: all 0.3s ease;
+  }
+  .btn-gold:hover {
+    @apply bg-gold-light;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(201,168,76,0.3);
+  }
+  .btn-gold:focus-visible {
+    outline: 2px solid #C9A84C;
+    outline-offset: 3px;
+  }
+
+  .btn-purple {
+    @apply bg-purple text-white font-semibold px-8 py-3.5 rounded-sm uppercase tracking-[0.12em] text-sm;
+    transition: all 0.3s ease;
+  }
+  .btn-purple:hover {
+    @apply bg-purple-light;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(108,59,170,0.3);
+  }
+  .btn-purple:focus-visible {
+    outline: 2px solid #8B6BC5;
+    outline-offset: 3px;
+  }
+
+  /* Input styles */
+  .input-premium {
+    @apply w-full bg-white/5 border border-gold/15 rounded-sm px-4 py-3 text-brand-paper;
+    @apply focus:border-gold focus:bg-gold/5 outline-none;
+    transition: all 0.2s ease;
+  }
+  .input-premium::placeholder {
+    @apply text-brand-paper/30;
+  }
+}
+
+@layer utilities {
+  /* Billboard screen glow */
+  .glow-border {
+    box-shadow:
+      0 0 15px rgba(201, 168, 76, 0.2),
+      0 0 40px rgba(201, 168, 76, 0.08),
+      inset 0 0 20px rgba(201, 168, 76, 0.04);
+  }
+
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Text shadows */
+  .text-shadow-premium {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.3);
+  }
+
+  /* Gradient overlays */
+  .overlay-dark {
+    @apply absolute inset-0;
+    background: linear-gradient(to bottom, rgba(11,11,43,0.7), rgba(11,11,43,0.95));
+  }
+  .overlay-gold {
+    @apply absolute inset-0;
+    background: linear-gradient(135deg, rgba(201,168,76,0.1), rgba(108,59,170,0.1));
+  }
 }
 
 html, body {
-  background: var(--ink-50);
   color: var(--ink-900);
   font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -55,7 +220,7 @@ h1, h2, h3, .display {
 }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
-/* Primary action — now Brainstake green */
+/* Primary action — now Raevision green */
 .btn-primary  { background: var(--brand); color: #fff; }
 .btn-primary:hover:not(:disabled) { background: var(--brand-dark); }
 
@@ -101,8 +266,30 @@ h1, h2, h3, .display {
 .bg-brand-deep { background: var(--brand-deep); }
 .text-brand  { color: var(--brand); }
 
+/* Landing page animations */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes expandWidth {
+  from { width: 0%; }
+  to   { width: var(--target-w, 100%); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+@keyframes scanline {
+  0%   { top: 0%; }
+  100% { top: 100%; }
+}
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 /* Subtle pulse used by the LIVE indicator on the auth hero */
-@keyframes brainstake-pulse {
+@keyframes raevision-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: .55; transform: scale(1.35); }
 }
@@ -115,7 +302,7 @@ h1, h2, h3, .display {
 .pulse-dot::after {
   content: ""; position: absolute; inset: -4px;
   border-radius: 50%; background: var(--brand-live);
-  opacity: .25; animation: brainstake-pulse 1.8s ease-in-out infinite;
+  opacity: .25; animation: raevision-pulse 1.8s ease-in-out infinite;
 }
 
 /* Grid background for the auth hero — hairline lines, very low contrast */
@@ -183,8 +370,8 @@ h1, h2, h3, .display {
 .stat-card-red::before   { background: #dc2626; }
 .stat-card-blue::before  { background: #2563eb; }
 
-/* Section label — eyebrow above headings */
-.section-label {
+/* Section label — eyebrow above headings (dashboard) */
+.section-label-dash {
   font-family: 'DM Mono', ui-monospace, monospace;
   font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--brand); font-weight: 500;

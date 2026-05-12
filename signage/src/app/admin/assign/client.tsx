@@ -129,15 +129,12 @@ export default function AssignClient({ bookings, devices }: { bookings: BookingR
       end_date: newEndDate,
       reason: dateChangeReason || undefined,
     };
-    console.log('Sending date update:', payload);
-
     const res = await fetch('/api/admin/bookings/dates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     const responseData = await res.json().catch(() => ({}));
-    console.log('Date update response:', { status: res.status, data: responseData });
 
     setBusy(null);
     if (!res.ok) {

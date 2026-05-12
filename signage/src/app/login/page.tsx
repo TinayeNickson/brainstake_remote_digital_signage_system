@@ -131,7 +131,7 @@ export default function LoginPage() {
               Forgot password?
             </button>
             <span className="text-ink-200">·</span>
-            <a href="mailto:info@brainstake.tech" className="text-[12px] text-ink-900/50 hover:text-ink-900/80 transition-colors">
+            <a href="mailto:info@raevision.tech" className="text-[12px] text-ink-900/50 hover:text-ink-900/80 transition-colors">
               Need help?
             </a>
           </div>
