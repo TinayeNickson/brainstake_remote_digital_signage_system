@@ -2,49 +2,81 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 
 /**
- * Builds a fully-ordered playlist of exactly `totalSlots` entries.
+ * Convert "HH:MM" or "HH:MM:SS" to total minutes since midnight.
+ */
+function timeToMinutes(t: string): number {
+  const parts = t.split(':').map(Number);
+  return (parts[0] ?? 0) * 60 + (parts[1] ?? 0);
+}
+
+/**
+ * Convert total minutes since midnight back to "HH:MM".
+ */
+function minutesToTime(m: number): string {
+  const h = Math.floor(m / 60) % 24;
+  const min = m % 60;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+/**
+ * Builds a fully-ordered playlist of exactly `totalSlots` entries, with each
+ * entry carrying a `scheduled_time` ("HH:MM") so the player knows when to
+ * display it within the operating window.
  *
  * Strategy:
- *  1. Each ad already carries a `slot_index` (from player_slots DB assignment)
- *     or will get one assigned here based on even distribution.
- *  2. Ad slots are spread as evenly as possible across positions 1..totalSlots
- *     using a stride: stride = Math.floor(totalSlots / adSlotCount).
- *  3. Every position not occupied by an ad slot is filled with fallback content,
- *     cycling through the fallback pool.
- *  4. If there are no ads at all, every slot is fallback.
- *  5. If there is no fallback, only the ad slots are returned (original behaviour).
+ *  1. Divide the operating window (startTime–endTime) into totalSlots equal bands.
+ *  2. Ad slots (spread evenly via slot_index) occupy their corresponding band times.
+ *  3. Every other position is filled with cycling fallback content.
+ *  4. If there are no ads, every slot is fallback spaced across the window.
+ *  5. If there is no fallback, only the ad slots are returned with times.
  */
 function buildInterleavedPlaylist(
   ads: any[],
   fallbacks: any[],
   totalSlots: number,
   displayMode: string,
+  startTime: string,
+  endTime:   string,
 ): any[] {
-  // If no fallback and no ads, return empty.
   if (ads.length === 0 && fallbacks.length === 0) return [];
 
-  // If no fallback, just return ads as-is (already ordered by slot_index or natural order).
-  if (fallbacks.length === 0) return ads;
+  const startMin = timeToMinutes(startTime || '06:00');
+  let   endMin   = timeToMinutes(endTime   || '22:00');
+  // Handle overnight windows (e.g. 20:00–02:00)
+  if (endMin <= startMin) endMin += 24 * 60;
+  const windowMin = Math.max(endMin - startMin, 1);
 
-  // Total ad entries (each entry = one slot play, slots_per_day already expanded by DB).
   const adSlotCount = ads.length;
-  const cap = Math.max(totalSlots, adSlotCount); // never truncate ads
+  const cap = Math.max(totalSlots, adSlotCount);
+
+  // Helper: compute the scheduled time for a 1-based slot position.
+  const slotTime = (pos: number) => {
+    // Place slot at the centre of its equal band within the window.
+    const bandMin = windowMin / cap;
+    const offsetMin = bandMin * (pos - 1) + bandMin / 2;
+    return minutesToTime(startMin + Math.round(offsetMin));
+  };
+
+  if (fallbacks.length === 0) {
+    // No fallback — just annotate ads with their times and return.
+    return ads.map((ad, i) => ({
+      ...ad,
+      scheduled_time: slotTime((ad.slot_index ?? i) + 1),
+    }));
+  }
 
   // Build a slot map: position (1-based) -> ad entry
   const slotMap = new Map<number, any>();
 
   if (adSlotCount > 0) {
     if (adSlotCount >= cap) {
-      // Ads fill or overflow total — assign them positions directly.
       ads.forEach((ad, i) => slotMap.set(i + 1, ad));
     } else {
-      // Spread ads evenly: compute target positions using equal-interval distribution.
-      // e.g. 3 ads across 80 slots → positions 14, 40, 67  (stride ~26.7)
+      // Spread ads evenly using equal-interval distribution.
       const stride = cap / adSlotCount;
       ads.forEach((ad, i) => {
-        const pos = Math.round(stride * i + stride / 2); // centred within each band
+        const pos = Math.round(stride * i + stride / 2);
         const clamped = Math.max(1, Math.min(cap, pos));
-        // Avoid collision — nudge forward if already taken
         let final = clamped;
         while (slotMap.has(final) && final <= cap) final++;
         slotMap.set(final, ad);
@@ -56,8 +88,9 @@ function buildInterleavedPlaylist(
   let fbIdx = 0;
   const playlist: any[] = [];
   for (let pos = 1; pos <= cap; pos++) {
+    const time = slotTime(pos);
     if (slotMap.has(pos)) {
-      playlist.push({ ...slotMap.get(pos), slot_index: pos });
+      playlist.push({ ...slotMap.get(pos), slot_index: pos, scheduled_time: time });
     } else {
       const fb = fallbacks[fbIdx % fallbacks.length];
       fbIdx++;
@@ -72,6 +105,7 @@ function buildInterleavedPlaylist(
         display_mode:      displayMode,
         run_outside_hours: false,
         slot_index:        pos,
+        scheduled_time:    time,
         is_fallback:       true,
       });
     }
@@ -172,8 +206,15 @@ export async function GET(req: NextRequest) {
   const fallbacks = (fallbackResult.data ?? []) as any[];
 
   // Build a fully-ordered playlist of exactly maxSlots entries.
-  // Ad slots are spread evenly across the range; fallback fills every other slot.
-  const paddedAds = buildInterleavedPlaylist(ads, fallbacks, maxSlots, deviceRow.display_mode);
+  // Ad slots are spread evenly across the operating window; fallback fills every other slot.
+  const paddedAds = buildInterleavedPlaylist(
+    ads,
+    fallbacks,
+    maxSlots,
+    deviceRow.display_mode,
+    deviceRow.start_time ?? '06:00',
+    deviceRow.end_time   ?? '22:00',
+  );
 
   return NextResponse.json(
     {
@@ -182,6 +223,7 @@ export async function GET(req: NextRequest) {
       ads:           paddedAds,
       outside_ads:   outsideAds,
       fallback:      fallbacks,
+      has_ads:       ads.length > 0,          // true when real ad slots exist today
       device: {
         start_time:   deviceRow.start_time,
         end_time:     deviceRow.end_time,

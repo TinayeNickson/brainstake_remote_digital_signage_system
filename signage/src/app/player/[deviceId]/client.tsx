@@ -15,6 +15,8 @@ interface FeedAd {
   display_mode: DisplayMode;
   run_outside_hours: boolean;
   slot_index?: number;
+  scheduled_time?: string;  // "HH:MM" — when this slot should play
+  is_fallback?: boolean;
 }
 
 interface FallbackItem {
@@ -44,6 +46,36 @@ const POLL_MS        = 30_000;
 const OVERRIDE_MS    = 10_000;
 const EMPTY_RETRY_MS = 10_000;
 const FALLBACK_DWELL = 15_000;
+
+/** Parse "HH:MM" into minutes since midnight. */
+function hhmm(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
+/** Current time in minutes since midnight. */
+function nowMin(): number {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+/**
+ * Find the index in playlist whose scheduled_time <= now < next slot's time.
+ * Falls back to the last slot whose time has passed.
+ * Returns 0 if no scheduled_time data exists.
+ */
+function currentSlotIndex(playlist: FeedAd[]): number {
+  if (playlist.length === 0) return 0;
+  if (!playlist[0].scheduled_time) return 0; // no time data — play in order
+  const now = nowMin();
+  let best = 0;
+  for (let i = 0; i < playlist.length; i++) {
+    const t = hhmm(playlist[i].scheduled_time!);
+    if (t <= now) best = i;
+    else break;
+  }
+  return best;
+}
 
 const TRANSITION_IN: Record<DisplayMode, string> = {
   fade:  'animate-[fadeIn_0.5s_ease_forwards]',
@@ -130,6 +162,8 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
   const [override,    setOverride]    = useState<Override | null>(null);
   const [loaded,      setLoaded]      = useState(false);
   const [withinHours, setWithinHours] = useState(true);
+  const [hasAds,      setHasAds]      = useState(false);  // real ads exist today
+  const [pendingAds,  setPendingAds]  = useState(false);  // ads arrived mid-fallback
   const [err,         setErr]         = useState<string | null>(null);
   const [animKey,     setAnimKey]     = useState(0);
   const [fullscreen,  setFullscreen]  = useState(false);
@@ -226,29 +260,40 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
           override:    Override | null;
           device:      DeviceInfo | null;
         };
-      // Legacy feed uses outsideAds key; content API uses outside_ads
-      const ads        = (json.ads         ?? []) as FeedAd[];
+      const ads         = (json.ads         ?? []) as FeedAd[];
       const outside_ads = (json.outside_ads ?? json.outsideAds ?? []) as FeedAd[];
+      const newHasAds   = (json.has_ads ?? ads.filter((a: FeedAd) => !a.is_fallback).length > 0) as boolean;
 
-      const normalAds  = ads        ?? [];
-      const extAds     = outside_ads ?? [];
-      adsPoolRef.current  = normalAds;
-      outsideRef.current  = extAds;
+      adsPoolRef.current  = ads;
+      outsideRef.current  = outside_ads;
       deviceRef.current   = dev;
 
       setOverride(ov ?? null);
       setDevice(dev ?? null);
       setFallbacks(fallback ?? []);
+      setHasAds(newHasAds);
 
       const open = isWithinHours(dev);
-      const pool = open ? normalAds : extAds;
+      const pool = open ? ads : outside_ads;
+
       setPlaylist(prev => {
         const next = buildPlaylist(pool);
         playlistRef.current = next;
         const changed =
           next.length !== prev.length ||
           next.some((a, i) => a.ad_id !== prev[i]?.ad_id);
-        if (changed) { setIdx(0); setAnimKey(k => k + 1); }
+        if (changed) {
+          // If currently showing fallback and ads just arrived, don't jump
+          // mid-item — set pendingAds so the switch happens after current item ends.
+          if (!open && newHasAds) {
+            setPendingAds(true);
+            return prev; // keep showing fallback until current item finishes
+          }
+          // Jump to the correct time-based slot position.
+          const startIdx = currentSlotIndex(next);
+          setIdx(startIdx);
+          setAnimKey(k => k + 1);
+        }
         return next;
       });
       setErr(null);
@@ -269,30 +314,43 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
   const advance = useCallback(() => {
     const len = playlistRef.current.length;
     setIdx(i => {
-      const next = len ? (i + 1) % len : 0;
-      preloadNext(playlistRef.current, next);
-      return next;
+      // Jump to time-correct slot rather than just i+1, so if we're behind
+      // schedule (e.g. after being paused) we catch up to the right slot.
+      const candidate = len ? (i + 1) % len : 0;
+      const timeBased = currentSlotIndex(playlistRef.current);
+      const next = timeBased > candidate ? timeBased : candidate;
+      preloadNext(playlistRef.current, next % (len || 1));
+      return next % (len || 1);
     });
     setAnimKey(k => k + 1);
   }, [preloadNext]);
 
   const advanceFallback = useCallback(() => {
+    // If ads have arrived while we were showing fallback, switch to ads now.
+    if (pendingAds && withinHours) {
+      setPendingAds(false);
+      const startIdx = currentSlotIndex(playlistRef.current);
+      setIdx(startIdx);
+      setAnimKey(k => k + 1);
+      return;
+    }
     setFallbackIdx(i => (fallbacks.length > 1 ? (i + 1) % fallbacks.length : 0));
     setAnimKey(k => k + 1);
-  }, [fallbacks.length]);
+  }, [fallbacks.length, pendingAds, withinHours]);
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
     if (override) return;
 
-    if (!withinHours) {
+    // Show fallback when: outside hours, OR within hours but no real ads today.
+    const showFallback = !withinHours || (withinHours && !hasAds && playlist.length === 0);
+    if (showFallback) {
       if (fallbacks.length >= 1) {
         const fb = fallbacks[fallbackIdx];
         if (fb?.content_type === 'image') {
           timer.current = setTimeout(advanceFallback, FALLBACK_DWELL);
         } else if (fb?.content_type === 'video' && fallbacks.length > 1) {
-          // Safety net: if onEnded doesn't fire (network stall / loop glitch),
-          // advance after a generous timeout so we never get stuck.
+          // Safety net only — onEnded handles the normal case.
           timer.current = setTimeout(advanceFallback, 60_000);
         }
       } else if (fallbacks.length === 0) {
@@ -308,15 +366,27 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
     const ad = playlistRef.current[idx];
     if (!ad) return;
 
-    // advancedRef prevents double-advance when a short video ends before the
-    // booked duration timer fires.
     advancedRef.current = false;
     const bookedMs = (parseInt(ad.duration, 10) || 15) * 1_000;
 
-    // For videos, add a grace period to prevent timer cutting off prematurely.
-    // The onEnded event should fire naturally; this timer is just a safety net.
-    const isVideo = ad.format === 'video';
-    const timerMs = isVideo ? bookedMs + 2000 : bookedMs;
+    // If this slot has a scheduled_time, compute how long until the NEXT slot
+    // and use that as the dwell time (so the slot plays for exactly its allocated
+    // window rather than just its booked duration).
+    let timerMs = ad.format === 'video' ? bookedMs + 2000 : bookedMs;
+    if (ad.scheduled_time && playlistRef.current.length > 1) {
+      const nextSlot = playlistRef.current[(idx + 1) % playlistRef.current.length];
+      if (nextSlot?.scheduled_time) {
+        const nowM     = nowMin();
+        const nextM    = hhmm(nextSlot.scheduled_time);
+        const curM     = hhmm(ad.scheduled_time);
+        // If next slot time is ahead of now, wait until then; else use booked duration.
+        const waitMs   = nextM > nowM ? (nextM - nowM) * 60_000 :
+                         nextM > curM ? (nextM - curM) * 60_000 : timerMs;
+        // Don't wait more than 10 min or less than booked duration.
+        timerMs = Math.min(Math.max(waitMs, bookedMs), 10 * 60_000);
+        if (ad.format === 'video') timerMs = bookedMs + 2000; // videos self-advance via onEnded
+      }
+    }
 
     timer.current = setTimeout(() => {
       if (!advancedRef.current) {
@@ -328,7 +398,7 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [idx, advance, fetchFeed, override, withinHours, fallbacks, fallbackIdx, advanceFallback]);
+  }, [idx, advance, fetchFeed, override, withinHours, hasAds, fallbacks, fallbackIdx, advanceFallback, playlist.length]);
 
   if (loaded && override) {
     return (
@@ -352,37 +422,44 @@ export default function PlayerClient({ deviceId, token }: { deviceId: string; to
     );
   }
 
-  if (loaded && !withinHours) {
+  // Show fallback when outside operating hours, OR when within hours but no real ads.
+  const showFallbackScreen = loaded && (!withinHours || (withinHours && !hasAds && playlist.length === 0));
+
+  if (showFallbackScreen) {
     const fb = fallbacks[fallbackIdx];
     if (fb) {
       return (
         <div className="player-container">
           {fb.content_type === 'video' ? (
-            <MediaFill key={fb.id} type="video" src={fb.content_url} className="" onEnded={advanceFallback} />
+            <MediaFill key={`fb-${fb.id}-${fallbackIdx}`} type="video" src={fb.content_url} className="" onEnded={advanceFallback} />
           ) : (
-            <MediaFill key={`${fb.id}-${animKey}`} type="image" src={fb.content_url} alt={fb.title} className={transitionCls} />
+            <MediaFill key={`fb-${fb.id}-${animKey}`} type="image" src={fb.content_url} alt={fb.title} className={transitionCls} />
           )}
-          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/40 rounded-full px-2.5 py-1" style={{ zIndex: 10 }}>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white/60">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span className="text-white/60 text-[10px] font-mono uppercase tracking-widest">Off hours</span>
-          </div>
+          {!withinHours && (
+            <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/40 rounded-full px-2.5 py-1" style={{ zIndex: 10 }}>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white/60">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span className="text-white/60 text-[10px] font-mono uppercase tracking-widest">Off hours</span>
+            </div>
+          )}
           <FullscreenButton fullscreen={fullscreen} onClick={toggleFullscreen} />
         </div>
       );
     }
-    return (
-      <div className="player-container flex flex-col items-center justify-center text-white/50">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="mb-4 text-white/20">
-          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-        </svg>
-        <div className="font-mono text-[10px] uppercase tracking-[0.3em] mb-2">Closed</div>
-        <div className="text-xl">Screen offline until {device?.start_time?.slice(0, 5) ?? '—'}</div>
-        <div className="font-mono text-[11px] mt-4 text-white/30">Device {deviceId.slice(0, 8)} · v{PLAYER_VERSION}</div>
-        <FullscreenButton fullscreen={fullscreen} onClick={toggleFullscreen} />
-      </div>
-    );
+    if (!withinHours) {
+      return (
+        <div className="player-container flex flex-col items-center justify-center text-white/50">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="mb-4 text-white/20">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <div className="font-mono text-[10px] uppercase tracking-[0.3em] mb-2">Closed</div>
+          <div className="text-xl">Screen offline until {device?.start_time?.slice(0, 5) ?? '—'}</div>
+          <div className="font-mono text-[11px] mt-4 text-white/30">Device {deviceId.slice(0, 8)} · v{PLAYER_VERSION}</div>
+          <FullscreenButton fullscreen={fullscreen} onClick={toggleFullscreen} />
+        </div>
+      );
+    }
   }
 
   return (
