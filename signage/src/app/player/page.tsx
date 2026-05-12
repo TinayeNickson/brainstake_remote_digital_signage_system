@@ -37,7 +37,7 @@ export default async function PlayerIndexPage({
               <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold">Raevision Player</h1>
+          <h1 className="text-xl font-bold">RareVision Player</h1>
           <p className="text-white/50 text-sm mt-1">Enter your device pairing code</p>
         </div>
 

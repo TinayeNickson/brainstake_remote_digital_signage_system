@@ -123,7 +123,7 @@ export default function RegisterPage() {
               <div className="mb-6 text-center">
                 <h1 className="display text-[30px] leading-tight text-ink-900">Create Your Account</h1>
                 <p className="text-[14px] mt-2">
-                  <span className="text-brand font-medium">Join Raevision</span>
+                  <span className="text-brand font-medium">Join RareVision</span>
                   <span className="text-ink-900/50"> and start advertising today</span>
                 </p>
               </div>
@@ -294,9 +294,9 @@ export default function RegisterPage() {
           )}
 
           <div className="flex items-center justify-center gap-6 mt-5">
-            <a href="mailto:info@raevision.tech" className="text-[12px] text-ink-900/50 hover:text-ink-900/80 transition-colors">Need help?</a>
+            <a href="mailto:info@rarevision.tech" className="text-[12px] text-ink-900/50 hover:text-ink-900/80 transition-colors">Need help?</a>
             <span className="text-ink-200">·</span>
-            <a href="mailto:info@raevision.tech" className="text-[12px] text-ink-900/50 hover:text-ink-900/80 transition-colors">Contact support</a>
+            <a href="mailto:info@rarevision.tech" className="text-[12px] text-ink-900/50 hover:text-ink-900/80 transition-colors">Contact support</a>
           </div>
         </div>
       </section>

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import BrandMark from '@/components/BrandMark';
 
 export const metadata = {
-  title: 'Privacy Policy — Raevision',
+  title: 'Privacy Policy — RareVision',
 };
 
 export default function PrivacyPage() {
@@ -26,13 +26,13 @@ export default function PrivacyPage() {
 
         <Section title="1. Who We Are">
           <p>
-            Raevision (Private) Limited (&quot;Raevision&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;)
-            operates the Raevision digital signage advertising platform. This Privacy Policy explains how
+            RareVision (Private) Limited (&quot;RareVision&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;)
+            operates the RareVision digital signage advertising platform. This Privacy Policy explains how
             we collect, use, store, and protect your personal information when you use our services.
           </p>
           <p>
             For any privacy-related enquiries, contact us at{' '}
-            <a href="mailto:info@raevision.tech" className="text-[#0f7b4a]">info@raevision.tech</a>.
+            <a href="mailto:info@rarevision.tech" className="text-[#0f7b4a]">info@rarevision.tech</a>.
           </p>
         </Section>
 
@@ -135,7 +135,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             To exercise any of these rights, email us at{' '}
-            <a href="mailto:info@raevision.tech" className="text-[#0f7b4a]">info@raevision.tech</a>.
+            <a href="mailto:info@rarevision.tech" className="text-[#0f7b4a]">info@rarevision.tech</a>.
             We will respond within 30 days.
           </p>
         </Section>
@@ -160,14 +160,14 @@ export default function PrivacyPage() {
           <p>
             For any questions or concerns about this Privacy Policy or how we handle your data, contact
             us at{' '}
-            <a href="mailto:info@raevision.tech" className="text-[#0f7b4a]">info@raevision.tech</a>.
+            <a href="mailto:info@rarevision.tech" className="text-[#0f7b4a]">info@rarevision.tech</a>.
           </p>
         </Section>
       </article>
 
       <footer className="border-t border-[#ebe7dd] py-8 text-center text-[12px] text-ink-900/40">
         <div className="flex items-center justify-center gap-4">
-          <span>© {new Date().getFullYear()} Raevision (Private) Limited</span>
+          <span>© {new Date().getFullYear()} RareVision (Private) Limited</span>
           <span>·</span>
           <Link href="/terms" className="hover:text-ink-900/70 transition-colors">Terms of Service</Link>
         </div>

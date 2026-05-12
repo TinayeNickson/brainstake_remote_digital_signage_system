@@ -41,13 +41,13 @@ export default function PrintButton() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
       doc.setTextColor(10, 46, 31);
-      doc.text('Raevision', pad, y + 4);
+      doc.text('RareVision', pad, y + 4);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(120, 120, 120);
       doc.text('Digital Signage Advertising', pad, y + 10);
-      doc.text('info@raevision.tech', pad, y + 15);
+      doc.text('info@rarevision.tech', pad, y + 15);
 
       y += 28;
 
@@ -189,7 +189,7 @@ export default function PrintButton() {
       doc.setFontSize(7.5);
       doc.setTextColor(180, 180, 180);
       doc.text('This is a computer-generated receipt and does not require a signature.', W / 2, y, { align: 'center' });
-      doc.text('Raevision  ·  Digital Signage Advertising  ·  info@raevision.tech',   W / 2, y + 5, { align: 'center' });
+      doc.text('RareVision  ·  Digital Signage Advertising  ·  info@rarevision.tech',   W / 2, y + 5, { align: 'center' });
 
       doc.save(`Receipt-${get('receiptNumber')}.pdf`);
     } catch (err) {
