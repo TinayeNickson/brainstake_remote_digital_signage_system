@@ -24,7 +24,10 @@ export default function CustomerMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [attachments, setAttachments] = useState<{name: string, url: string}[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchMessages();
@@ -58,28 +61,95 @@ export default function CustomerMessagesPage() {
     }
   }
 
+  async function uploadFile(file: File) {
+    setUploading(true);
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('message-attachments')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('message-attachments')
+        .getPublicUrl(fileName);
+
+      setAttachments(prev => [...prev, { name: file.name, url: publicUrl }]);
+      return publicUrl;
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload file. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files) return;
+    
+    Array.from(files).forEach(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`File ${file.name} is too large. Max size is 10MB.`);
+        return;
+      }
+      uploadFile(file);
+    });
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+
+  function removeAttachment(index: number) {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  }
+
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() && attachments.length === 0) return;
 
     setSending(true);
     try {
+      // Send message with first attachment as primary (others in content)
+      const attachmentUrl = attachments.length > 0 ? attachments[0].url : null;
+      const contentWithAttachments = attachments.length > 1 
+        ? `${newMessage}\n\n[Additional attachments: ${attachments.slice(1).map(a => a.name).join(', ')}]`
+        : newMessage;
+
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: newMessage,
+          content: contentWithAttachments,
           subject,
           message_type: 'general',
+          attachment_url: attachmentUrl,
         }),
       });
 
       if (res.ok) {
         setNewMessage('');
+        setAttachments([]);
         await fetchMessages();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to send message');
       }
     } catch (error) {
       console.error('Failed to send message:', error);
+      alert('Failed to send message. Please try again.');
     } finally {
       setSending(false);
     }
@@ -208,6 +278,31 @@ export default function CustomerMessagesPage() {
                 </select>
               </div>
             </div>
+            
+            {/* Attachments preview */}
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {attachments.map((att, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-white border border-ink-200 rounded-lg px-3 py-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-ink-500">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                    <span className="text-sm text-ink-700 truncate max-w-[150px]">{att.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(i)}
+                      className="text-ink-400 hover:text-red-500"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
             <div className="flex gap-3">
               <textarea
                 value={newMessage}
@@ -221,11 +316,38 @@ export default function CustomerMessagesPage() {
                   }
                 }}
               />
-              <button
-                type="submit"
-                disabled={sending || !newMessage.trim()}
-                className="btn btn-primary self-end h-12 px-6"
-              >
+              <div className="flex flex-col gap-2">
+                {/* File upload button */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,video/*,audio/*"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="btn btn-secondary h-10 px-3"
+                  title="Attach files"
+                >
+                  {uploading ? (
+                    <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                  )}
+                </button>
+                <button
+                  type="submit"
+                  disabled={sending || (!newMessage.trim() && attachments.length === 0)}
+                  className="btn btn-primary h-12 px-6"
+                >
                 {sending ? (
                   'Sending...'
                 ) : (
