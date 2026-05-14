@@ -12,6 +12,8 @@ const CUSTOMER_NAV = [
   { href: '/dashboard',              label: 'Dashboard',     icon: 'home'     },
   { href: '/dashboard/my-campaigns', label: 'My Campaigns',  icon: 'campaign' },
   { href: '/dashboard/new',          label: 'New Campaign',  icon: 'plus'     },
+  { href: '/dashboard/design-requests', label: 'Design Requests', icon: 'design' },
+  { href: '/dashboard/messages',     label: 'Messages',      icon: 'chat'     },
   { href: '/dashboard/receipts',     label: 'Receipts',      icon: 'receipt'  },
   { href: '/dashboard/notifications', label: 'Notifications', icon: 'bell'     },
 ];
@@ -24,6 +26,9 @@ const ACCOUNTANT_NAV = [
 
 const ADMIN_NAV = [
   { href: '/admin',             label: 'Approved Ads',    icon: 'screen'    },
+  { href: '/admin/adverts',    label: 'Advert Assignments', icon: 'assignment' },
+  { href: '/admin/design-requests', label: 'Design Requests', icon: 'design'   },
+  { href: '/admin/messages',   label: 'Messages',        icon: 'chat'      },
   { href: '/admin/locations',   label: 'Locations',       icon: 'location'  },
   { href: '/admin/packages',    label: 'Packages',        icon: 'package'   },
   { href: '/admin/devices',     label: 'Devices',         icon: 'device'    },
@@ -58,24 +63,27 @@ type IconComp = ({ active }: { active?: boolean }) => JSX.Element;
 
 /* Must be defined before AppShell since it's a const (not hoisted) */
 const ICON_MAP: Record<string, IconComp> = {
-  home:      HomeIcon,
-  campaign:  CampaignIcon,
-  plus:      PlusIcon,
-  receipt:   ReceiptIcon,
-  payments:  PaymentsIcon,
-  screen:    ScreenIcon,
-  location:  LocationIcon,
-  device:    DeviceIcon,
-  lock:      LockIcon,
-  link:      LinkIcon,
-  users:     UsersIcon,
-  package:   PackageNavIcon,
-  broadcast: BroadcastNavIcon,
-  chart:     ChartIcon,
-  settings:  SettingsIcon,
-  fallback:  FallbackIcon,
-  bell:      BellIcon,
-  phone:     PhoneIcon,
+  home:       HomeIcon,
+  campaign:   CampaignIcon,
+  plus:       PlusIcon,
+  receipt:    ReceiptIcon,
+  payments:   PaymentsIcon,
+  screen:     ScreenIcon,
+  location:   LocationIcon,
+  device:     DeviceIcon,
+  lock:       LockIcon,
+  link:       LinkIcon,
+  users:      UsersIcon,
+  package:    PackageNavIcon,
+  broadcast:  BroadcastNavIcon,
+  chart:      ChartIcon,
+  settings:   SettingsIcon,
+  fallback:   FallbackIcon,
+  bell:       BellIcon,
+  phone:      PhoneIcon,
+  assignment: AssignmentIcon,
+  design:     DesignIcon,
+  chat:       ChatIcon,
 };
 
 interface Props {
@@ -394,6 +402,31 @@ function PhoneIcon({ active }: { active?: boolean }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round">
       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+  );
+}
+function AssignmentIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round">
+      <path d="M9 11l3 3L22 4"/>
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+  );
+}
+function DesignIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round">
+      <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+      <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+      <path d="M2 2l7.586 7.586"/>
+      <circle cx="11" cy="11" r="2"/>
+    </svg>
+  );
+}
+function ChatIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
     </svg>
   );
 }

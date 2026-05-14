@@ -1,0 +1,25 @@
+R_DEF: Internal format may change without notice
+local
+drawable ic_launcher_background
+drawable ic_tv
+mipmap ic_launcher
+mipmap ic_launcher_foreground
+mipmap ic_launcher_round
+string app_name
+string broadcast_label
+string device_label
+string off_hours_message
+string off_hours_title
+string pairing_button
+string pairing_error_invalid
+string pairing_error_network
+string pairing_hint
+string pairing_subtitle
+string pairing_title
+string player_version
+string standby_message
+string standby_title
+style Theme.RareVisionPlayer
+style Theme.RareVisionPlayer.Fullscreen
+xml backup_rules
+xml data_extraction_rules

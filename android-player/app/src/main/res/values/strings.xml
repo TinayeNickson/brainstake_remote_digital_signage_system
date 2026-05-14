@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">RareVision Player</string>
+    <string name="pairing_title">RareVision Player</string>
+    <string name="pairing_subtitle">Enter your device pairing code</string>
+    <string name="pairing_hint">e.g. ABC123</string>
+    <string name="pairing_button">Pair Device</string>
+    <string name="pairing_error_invalid">Invalid code. Please check and try again.</string>
+    <string name="pairing_error_network">Network error. Please check your connection.</string>
+    <string name="standby_title">Standby</string>
+    <string name="standby_message">No scheduled ads right now</string>
+    <string name="off_hours_title">Off hours</string>
+    <string name="off_hours_message">Screen offline until %s</string>
+    <string name="broadcast_label">Broadcast</string>
+    <string name="device_label">Device %s · v%s</string>
+    <string name="player_version">1.0</string>
+</resources>
