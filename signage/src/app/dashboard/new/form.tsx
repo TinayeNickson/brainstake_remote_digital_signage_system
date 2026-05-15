@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DaySelector from '@/components/DaySelector';
 import { supabaseBrowser } from '@/lib/supabase-browser';
 import { countScheduledDays, getPricePerSlot } from '@/lib/pricing';
@@ -30,16 +31,23 @@ export default function NewBookingForm({
   packages: Package[];
 }) {
   const supa = supabaseBrowser();
+  const searchParams = useSearchParams();
+
+  /* ── Prefill from design request ── */
+  const prefillDesignUrl = searchParams.get('design_url');
+  const prefillDesignTitle = searchParams.get('design_title') || '';
+  const prefillDesignType = (searchParams.get('design_type') as 'image'|'video') || 'image';
+  const hasPrefillDesign = !!prefillDesignUrl;
 
   /* ── Step state ─────────────────── */
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(hasPrefillDesign ? 3 : 1);
 
   /* ── Step 1: Ad Type ────────────── */
-  const [adType,    setAdType]    = useState<'image'|'video'|'audio'|''>('');
+  const [adType,    setAdType]    = useState<'image'|'video'|'audio'|''>(hasPrefillDesign ? prefillDesignType : '');
   const [step1Err,  setStep1Err]  = useState('');
 
   /* ── Step 2: Upload ─────────────── */
-  const [title,    setTitle]    = useState('');
+  const [title,    setTitle]    = useState(prefillDesignTitle);
   const [files,    setFiles]    = useState<File[]>([]);
   const [step2Err, setStep2Err] = useState('');
   // Convenience: first file (used everywhere a single file was expected)
@@ -232,36 +240,54 @@ export default function NewBookingForm({
       const { data: { user } } = await supa.auth.getUser();
       if (!user) throw new Error('Please sign in again.');
 
-      // Upload all files, then create ONE ad row.
-      // For multi-image: media_url stores a JSON array of all URLs so the
-      // player can cycle through each image in the slideshow.
+      // Handle prefill design URL or upload files
       const adFormat = adType === 'audio' ? 'video' : adType as 'image'|'video';
-      const uploadedUrls: string[] = [];
-      const firstPath: string[] = [];
-      for (const f of files) {
-        const ext  = f.name.split('.').pop() || 'bin';
-        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supa.storage.from('ad-media').upload(path, f, {
-          contentType: f.type, upsert: false,
-        });
-        if (upErr) throw new Error(upErr.message);
-        const { data: pub } = supa.storage.from('ad-media').getPublicUrl(path);
-        uploadedUrls.push(pub.publicUrl);
-        if (firstPath.length === 0) firstPath.push(path);
+      let mediaUrl: string;
+      let mediaPath: string | null = null;
+      let mimeType: string | null = null;
+      let fileSizeBytes: number | null = null;
+
+      if (hasPrefillDesign && prefillDesignUrl) {
+        // Use prefill design URL directly
+        mediaUrl = prefillDesignUrl;
+        // Try to extract mime type from URL extension
+        const ext = prefillDesignUrl.split('.').pop()?.split('?')[0] || '';
+        mimeType = ext === 'mp4' || ext === 'webm' ? 'video/mp4' : 'image/jpeg';
+      } else {
+        // Upload all files, then create ONE ad row.
+        // For multi-image: media_url stores a JSON array of all URLs so the
+        // player can cycle through each image in the slideshow.
+        const uploadedUrls: string[] = [];
+        const firstPath: string[] = [];
+        for (const f of files) {
+          const ext  = f.name.split('.').pop() || 'bin';
+          const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+          const { error: upErr } = await supa.storage.from('ad-media').upload(path, f, {
+            contentType: f.type, upsert: false,
+          });
+          if (upErr) throw new Error(upErr.message);
+          const { data: pub } = supa.storage.from('ad-media').getPublicUrl(path);
+          uploadedUrls.push(pub.publicUrl);
+          if (firstPath.length === 0) firstPath.push(path);
+        }
+        // Single image → plain URL. Multiple images → JSON array string.
+        mediaUrl = uploadedUrls.length === 1
+          ? uploadedUrls[0]
+          : JSON.stringify(uploadedUrls);
+        mediaPath = firstPath[0] || null;
+        mimeType = files[0]?.type || null;
+        fileSizeBytes = files.reduce((s, f) => s + f.size, 0);
       }
-      // Single image → plain URL. Multiple images → JSON array string.
-      const mediaUrl = uploadedUrls.length === 1
-        ? uploadedUrls[0]
-        : JSON.stringify(uploadedUrls);
+
       const { data: ad, error: adErr } = await supa.from('ads').insert({
         customer_id:     user.id,
         title,
         format:          adFormat,
         duration,
         media_url:       mediaUrl,
-        media_path:      firstPath[0],
-        mime_type:       files[0].type,
-        file_size_bytes: files.reduce((s, f) => s + f.size, 0),
+        media_path:      mediaPath,
+        mime_type:       mimeType,
+        file_size_bytes: fileSizeBytes,
       }).select().single();
       if (adErr) throw new Error(adErr.message);
 
@@ -733,10 +759,12 @@ export default function NewBookingForm({
           <ReviewSection title="Ad Type">
             <ReviewRow k="Format" v={adType.charAt(0).toUpperCase() + adType.slice(1)} />
             <ReviewRow k="Campaign title" v={title} />
-            <ReviewRow k="File" v={
-              adType === 'image' && files.length > 1
-                ? `${files.length} images — ${files.map(f => f.name).join(', ')}`
-                : `${file?.name} (${((file?.size ?? 0) / 1024 / 1024).toFixed(1)} MB)`
+            <ReviewRow k={hasPrefillDesign ? "Design" : "File"} v={
+              hasPrefillDesign
+                ? "Professional design from our creative team"
+                : adType === 'image' && files.length > 1
+                  ? `${files.length} images — ${files.map(f => f.name).join(', ')}`
+                  : `${file?.name} (${((file?.size ?? 0) / 1024 / 1024).toFixed(1)} MB)`
             } />
           </ReviewSection>
 

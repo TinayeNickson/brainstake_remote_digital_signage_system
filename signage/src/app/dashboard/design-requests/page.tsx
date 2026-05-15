@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface DesignRequest {
@@ -28,6 +29,7 @@ interface DesignRequest {
 }
 
 export default function CustomerDesignRequestsPage() {
+  const router = useRouter();
   const [requests, setRequests] = useState<DesignRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewRequest, setShowNewRequest] = useState(false);
@@ -101,6 +103,16 @@ export default function CustomerDesignRequestsPage() {
       });
 
       if (res.ok) {
+        // If approved, redirect to campaign creation with design pre-filled
+        if (action === 'approved' && selectedRequest.design_url) {
+          const params = new URLSearchParams({
+            design_url: selectedRequest.design_url,
+            design_title: selectedRequest.title,
+            design_type: selectedRequest.design_type === 'video' ? 'video' : 'image',
+          });
+          router.push(`/dashboard/new?${params.toString()}`);
+          return;
+        }
         setSelectedRequest(null);
         setReviewFeedback('');
         await fetchRequests();
