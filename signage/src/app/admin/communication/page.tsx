@@ -244,13 +244,13 @@ function CommunicationHubContent() {
     ? designRequests 
     : designRequests.filter(d => d.status === designFilter);
 
-  const statusConfig: Record<string, { class: string; label: string; icon: string }> = {
-    pending: { class: 'badge badge-amber', label: 'Pending', icon: '⏳' },
-    in_progress: { class: 'badge badge-blue', label: 'In Progress', icon: '🎨' },
-    submitted: { class: 'badge badge-purple', label: 'Ready for Review', icon: '👁️' },
-    approved: { class: 'badge badge-green', label: 'Approved', icon: '✅' },
-    rejected: { class: 'badge badge-red', label: 'Rejected', icon: '❌' },
-    revision_requested: { class: 'badge badge-orange', label: 'Revision Needed', icon: '🔧' },
+  const statusConfig: Record<string, { class: string; label: string }> = {
+    pending: { class: 'badge badge-amber', label: 'Pending' },
+    in_progress: { class: 'badge badge-blue', label: 'In Progress' },
+    submitted: { class: 'badge badge-purple', label: 'Ready for Review' },
+    approved: { class: 'badge badge-green', label: 'Approved' },
+    rejected: { class: 'badge badge-red', label: 'Rejected' },
+    revision_requested: { class: 'badge badge-orange', label: 'Revision Needed' },
   };
 
   return (
@@ -425,7 +425,10 @@ function CommunicationHubContent() {
                                 m.is_from_customer ? 'text-brand' : 'text-white/80'
                               }`}
                             >
-                              📎 View Attachment
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline mr-1">
+                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                              </svg>
+                              View Attachment
                             </a>
                           )}
                         </div>
@@ -564,7 +567,7 @@ function CommunicationHubContent() {
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-ink-900">{request.title}</h3>
                           <span className={`${statusConfig[request.status]?.class || 'badge'} text-xs`}>
-                            {statusConfig[request.status]?.icon} {statusConfig[request.status]?.label || request.status}
+                            {statusConfig[request.status]?.label || request.status}
                           </span>
                         </div>
                         <p className="text-sm text-ink-900/70 mb-3 line-clamp-2">{request.description}</p>

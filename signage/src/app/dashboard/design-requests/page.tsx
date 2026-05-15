@@ -113,12 +113,12 @@ export default function CustomerDesignRequestsPage() {
   }
 
   const statusConfig: Record<string, { class: string; label: string; icon: string }> = {
-    pending: { class: 'badge badge-amber', label: 'Pending', icon: '⏳' },
-    in_progress: { class: 'badge badge-blue', label: 'In Progress', icon: '🎨' },
-    submitted: { class: 'badge badge-purple', label: 'Ready for Review', icon: '👁️' },
-    approved: { class: 'badge badge-green', label: 'Approved', icon: '✅' },
-    rejected: { class: 'badge badge-red', label: 'Rejected', icon: '❌' },
-    revision_requested: { class: 'badge badge-orange', label: 'Revision Needed', icon: '🔧' },
+    pending: { class: 'badge badge-amber', label: 'Pending', icon: 'clock' },
+    in_progress: { class: 'badge badge-blue', label: 'In Progress', icon: 'brush' },
+    submitted: { class: 'badge badge-purple', label: 'Ready for Review', icon: 'eye' },
+    approved: { class: 'badge badge-green', label: 'Approved', icon: 'check' },
+    rejected: { class: 'badge badge-red', label: 'Rejected', icon: 'x' },
+    revision_requested: { class: 'badge badge-orange', label: 'Revision Needed', icon: 'tool' },
   };
 
   return (
@@ -201,7 +201,7 @@ export default function CustomerDesignRequestsPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-semibold text-ink-900">{r.title}</h3>
                       <span className={`${statusConfig[r.status]?.class || 'badge'} text-xs`}>
-                        {statusConfig[r.status]?.icon} {statusConfig[r.status]?.label || r.status}
+                        {statusConfig[r.status]?.label || r.status}
                       </span>
                     </div>
                     <p className="text-sm text-ink-900/70 mb-2 line-clamp-2">{r.description}</p>
@@ -407,7 +407,9 @@ export default function CustomerDesignRequestsPage() {
                   disabled={submitting}
                   className="btn btn-primary h-12 text-base"
                 >
-                  <span className="text-lg mr-2">✅</span>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
                   Approve Design — Use This for My Campaign
                 </button>
                 <div className="grid grid-cols-2 gap-3">
@@ -416,7 +418,9 @@ export default function CustomerDesignRequestsPage() {
                     disabled={submitting}
                     className="btn btn-amber"
                   >
-                    <span className="mr-2">🔧</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+                      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                    </svg>
                     Request Changes
                   </button>
                   <button
@@ -424,7 +428,9 @@ export default function CustomerDesignRequestsPage() {
                     disabled={submitting}
                     className="btn btn-secondary text-red-600 hover:bg-red-50"
                   >
-                    <span className="mr-2">❌</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
                     Reject Design
                   </button>
                 </div>
