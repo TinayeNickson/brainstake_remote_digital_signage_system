@@ -1,151 +1,248 @@
 import { supabaseServer } from '@/lib/supabase-server';
 import { fmtDate } from '@/lib/format';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminHome() {
+export default async function AdminDashboard() {
   const supabase = supabaseServer();
 
-  const { data: bookings } = await supabase
-    .from('bookings')
-    .select(`
-      id, start_date, end_date, duration, slots_per_day,
-      status, device_id, created_at, approved_at,
-      ad:ads(title, format, duration, media_url),
-      location:locations(name),
-      customer:profiles!bookings_customer_id_fkey(full_name, email),
-      device:devices(code, name)
-    `)
-    .eq('status', 'active')
-    .order('approved_at', { ascending: false });
+  // Fetch stats
+  const [bookingsRes, messagesRes, designReqsRes, devicesRes, usersRes] = await Promise.all([
+    supabase.from('bookings').select('id, status, device_id, start_date, end_date', { count: 'exact' }),
+    supabase.from('messages').select('id, is_read, is_from_customer', { count: 'exact' }).eq('is_read', false),
+    supabase.from('design_requests').select('id, status', { count: 'exact' }),
+    supabase.from('devices').select('id, status', { count: 'exact' }),
+    supabase.from('profiles').select('id, role', { count: 'exact' }).eq('role', 'customer'),
+  ]);
 
-  const rows = bookings ?? [];
-  const unassigned = rows.filter((b: any) => !b.device_id).length;
+  const totalBookings = bookingsRes.count ?? 0;
+  const activeBookings = (bookingsRes.data?.filter(b => b.status === 'active').length) ?? 0;
+  const unassignedAds = (bookingsRes.data?.filter(b => b.status === 'active' && !b.device_id).length) ?? 0;
+  const unreadMessages = messagesRes.count ?? 0;
+  const pendingDesigns = (designReqsRes.data?.filter(d => ['pending', 'in_progress', 'submitted'].includes(d.status)).length) ?? 0;
+  const totalDevices = devicesRes.count ?? 0;
+  const onlineDevices = (devicesRes.data?.filter(d => d.status === 'online').length) ?? 0;
+  const totalCustomers = usersRes.count ?? 0;
+
+  // Fetch recent items
+  const [recentMessages, recentDesigns] = await Promise.all([
+    supabase
+      .from('messages')
+      .select(`
+        id, content, created_at, is_read, is_from_customer,
+        sender:sender_id(full_name, email),
+        recipient:recipient_id(full_name, email)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(5),
+    supabase
+      .from('design_requests')
+      .select(`
+        id, title, status, created_at,
+        customer:customer_id(full_name, email)
+      `)
+      .in('status', ['pending', 'in_progress', 'submitted'])
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ]);
 
   return (
     <div className="space-y-7">
-
       {/* Page header */}
       <div className="page-header">
         <div>
           <span className="section-label">Admin Portal</span>
-          <h1 className="display text-4xl text-ink-900">Approved Ads</h1>
+          <h1 className="display text-4xl text-ink-900">Dashboard</h1>
           <p className="text-sm text-ink-900/50 mt-1 max-w-lg">
-            All bookings below have verified payments and are actively playing on screens.
-            Use <span className="font-semibold text-ink-900">Ad&thinsp;&rarr;&thinsp;Screen</span> to assign unplaced ads.
+            Overview of your digital signage platform. Monitor ads, devices, customer communication, and design requests.
           </p>
         </div>
-        {unassigned > 0 && (
-          <span className="badge badge-amber shrink-0">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            {unassigned} unassigned
-          </span>
-        )}
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="stat-card">
-          <p className="text-xs font-semibold text-ink-900/45 uppercase tracking-wider mb-2">Live Ads</p>
-          <p className="display text-4xl font-extrabold text-brand leading-none">{rows.length}</p>
-          <p className="text-xs text-ink-900/40 mt-2">Currently broadcasting</p>
-        </div>
-        <div className="stat-card stat-card-amber">
-          <p className="text-xs font-semibold text-ink-900/45 uppercase tracking-wider mb-2">Awaiting Placement</p>
-          <p className="display text-4xl font-extrabold text-amber-600 leading-none">{unassigned}</p>
-          <p className="text-xs text-ink-900/40 mt-2">No screen assigned yet</p>
-        </div>
-      </div>
-
-      {/* Ads list */}
-      {rows.length === 0 ? (
-        <div className="paper p-14 flex flex-col items-center justify-center text-center">
-          <div className="w-14 h-14 rounded-2xl bg-brand-soft flex items-center justify-center mb-5">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="text-brand">
-              <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-            </svg>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Link href="/admin/adverts" className="stat-card hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-ink-900/45 uppercase tracking-wider">Live Ads</p>
+            <span className="w-8 h-8 rounded-lg bg-brand-soft flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-brand">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+              </svg>
+            </span>
           </div>
-          <p className="display text-xl text-ink-900/60 mb-1">No approved ads yet</p>
-          <p className="text-sm text-ink-900/40 max-w-xs">
-            Once a customer&rsquo;s payment is verified by the accountant, their ad will appear here.
-          </p>
-        </div>
-      ) : (
+          <p className="display text-3xl font-extrabold text-brand leading-none">{activeBookings}</p>
+          <p className="text-xs text-ink-900/40 mt-2">{unassignedAds} awaiting placement</p>
+        </Link>
+
+        <Link href="/admin/communication" className="stat-card hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-ink-900/45 uppercase tracking-wider">Messages</p>
+            <span className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-blue-600">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </span>
+          </div>
+          <p className="display text-3xl font-extrabold text-blue-600 leading-none">{unreadMessages}</p>
+          <p className="text-xs text-ink-900/40 mt-2">unread messages</p>
+        </Link>
+
+        <Link href="/admin/communication?tab=designs" className="stat-card hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-ink-900/45 uppercase tracking-wider">Design Requests</p>
+            <span className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-purple-600">
+                <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+              </svg>
+            </span>
+          </div>
+          <p className="display text-3xl font-extrabold text-purple-600 leading-none">{pendingDesigns}</p>
+          <p className="text-xs text-ink-900/40 mt-2">pending/in progress</p>
+        </Link>
+
+        <Link href="/admin/devices" className="stat-card hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-ink-900/45 uppercase tracking-wider">Devices</p>
+            <span className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-green-600">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+              </svg>
+            </span>
+          </div>
+          <p className="display text-3xl font-extrabold text-green-600 leading-none">{onlineDevices}/{totalDevices}</p>
+          <p className="text-xs text-ink-900/40 mt-2">online devices</p>
+        </Link>
+      </div>
+
+      {/* Quick Actions Row */}
+      <div className="flex flex-wrap gap-3">
+        <Link href="/admin/communication" className="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mr-2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          Communication Hub
+        </Link>
+        <Link href="/admin/adverts" className="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mr-2">
+            <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+          </svg>
+          View All Ads
+        </Link>
+        <Link href="/admin/devices" className="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mr-2">
+            <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/>
+          </svg>
+          Manage Devices
+        </Link>
+      </div>
+
+      {/* Two Column Layout: Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Messages */}
         <div className="paper overflow-hidden">
-          {/* Table header */}
-          <div className="data-header grid-cols-12 hidden sm:grid">
-            <div className="col-span-5">Ad · Customer</div>
-            <div className="col-span-2">Location</div>
-            <div className="col-span-2">Schedule</div>
-            <div className="col-span-2">Screen</div>
+          <div className="p-4 border-b border-ink-100 bg-ink-50/50 flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-ink-900">Recent Messages</h3>
+              <p className="text-xs text-ink-900/50">Latest customer communications</p>
+            </div>
+            <Link href="/admin/communication" className="text-sm text-brand hover:underline">View all</Link>
           </div>
-
           <div className="divide-y divide-ink-100">
-            {rows.map((b: any) => (
-              <div key={b.id} className="grid grid-cols-12 gap-4 px-5 py-4 items-center row-hover transition-colors">
-
-                {/* Thumbnail + Ad info */}
-                <div className="col-span-12 sm:col-span-5 flex items-center gap-4 min-w-0">
-                  <div className="shrink-0 w-[72px] h-[48px] rounded-lg overflow-hidden bg-ink-100 border border-ink-100">
-                    {b.ad?.format === 'image' ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={b.ad.media_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-ink-900/5">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-ink-900/30">
-                          <polygon points="5 3 19 12 5 21 5 3"/>
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-[13.5px] text-ink-900 truncate">{b.ad?.title}</span>
-                      <span className="badge badge-green shrink-0">Live</span>
-                    </div>
-                    <p className="text-[12px] text-ink-900/50 truncate mt-0.5">{b.customer?.full_name ?? b.customer?.email ?? '—'}</p>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className="inline-flex items-center gap-1 text-[11px] text-ink-900/45 mono">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        {b.duration}s
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-[11px] text-ink-900/45 mono">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-                        {b.slots_per_day}/day
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Location */}
-                <div className="col-span-4 sm:col-span-2">
-                  <p className="text-[13px] text-ink-900 font-medium truncate">{b.location?.name ?? '—'}</p>
-                </div>
-
-                {/* Schedule */}
-                <div className="col-span-4 sm:col-span-2">
-                  <p className="text-[12px] text-ink-900/70 mono">{fmtDate(b.start_date)}</p>
-                  <p className="text-[11px] text-ink-900/40 mono">→ {fmtDate(b.end_date)}</p>
-                </div>
-
-                {/* Screen */}
-                <div className="col-span-4 sm:col-span-2">
-                  {b.device ? (
-                    <>
-                      <p className="text-[13px] text-ink-900 font-medium truncate">{b.device.name}</p>
-                      <p className="text-[11px] text-ink-900/40 mono">{b.device.code}</p>
-                    </>
-                  ) : (
-                    <span className="badge badge-amber">Unassigned</span>
-                  )}
-                </div>
-
-
+            {(recentMessages.data?.length ?? 0) === 0 ? (
+              <div className="p-8 text-center text-ink-900/50">
+                <p className="text-sm">No messages yet</p>
               </div>
-            ))}
+            ) : (
+              recentMessages.data?.map((m: any) => (
+                <div key={m.id} className="p-4 hover:bg-ink-50/50 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-2 h-2 rounded-full mt-2 ${m.is_read ? 'bg-ink-200' : 'bg-blue-500'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ink-900">
+                        {m.is_from_customer 
+                          ? (m.sender?.full_name || m.sender?.email || 'Customer')
+                          : 'You (Admin)'}
+                      </p>
+                      <p className="text-sm text-ink-900/70 truncate">{m.content}</p>
+                      <p className="text-xs text-ink-900/40 mt-1">
+                        {new Date(m.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
-      )}
+
+        {/* Recent Design Requests */}
+        <div className="paper overflow-hidden">
+          <div className="p-4 border-b border-ink-100 bg-ink-50/50 flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-ink-900">Design Requests</h3>
+              <p className="text-xs text-ink-900/50">Pending and in-progress designs</p>
+            </div>
+            <Link href="/admin/communication?tab=designs" className="text-sm text-brand hover:underline">View all</Link>
+          </div>
+          <div className="divide-y divide-ink-100">
+            {(recentDesigns.data?.length ?? 0) === 0 ? (
+              <div className="p-8 text-center text-ink-900/50">
+                <p className="text-sm">No pending design requests</p>
+              </div>
+            ) : (
+              recentDesigns.data?.map((d: any) => (
+                <div key={d.id} className="p-4 hover:bg-ink-50/50 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ink-900 truncate">{d.title}</p>
+                      <p className="text-xs text-ink-900/50">
+                        {d.customer?.full_name || d.customer?.email || 'Customer'}
+                      </p>
+                      <p className="text-xs text-ink-900/40 mt-1">
+                        {new Date(d.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <span className={`badge ${
+                      d.status === 'pending' ? 'badge-amber' :
+                      d.status === 'in_progress' ? 'badge-blue' :
+                      d.status === 'submitted' ? 'badge-purple' :
+                      'badge-gray'
+                    } text-xs shrink-0`}>
+                      {d.status === 'in_progress' ? 'In Progress' : 
+                       d.status === 'submitted' ? 'Ready for Review' :
+                       d.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* System Overview */}
+      <div className="paper p-6">
+        <h3 className="font-semibold text-ink-900 mb-4">Platform Overview</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="text-center">
+            <p className="display text-2xl font-bold text-ink-900">{totalBookings}</p>
+            <p className="text-xs text-ink-900/50 uppercase tracking-wider">Total Bookings</p>
+          </div>
+          <div className="text-center">
+            <p className="display text-2xl font-bold text-ink-900">{totalCustomers}</p>
+            <p className="text-xs text-ink-900/50 uppercase tracking-wider">Customers</p>
+          </div>
+          <div className="text-center">
+            <p className="display text-2xl font-bold text-ink-900">{totalDevices}</p>
+            <p className="text-xs text-ink-900/50 uppercase tracking-wider">Screens</p>
+          </div>
+          <div className="text-center">
+            <p className="display text-2xl font-bold text-green-600">{onlineDevices}</p>
+            <p className="text-xs text-ink-900/50 uppercase tracking-wider">Online Now</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
